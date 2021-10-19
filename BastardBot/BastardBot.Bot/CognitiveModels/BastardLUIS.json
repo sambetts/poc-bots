@@ -1,0 +1,133 @@
+{
+  "luis_schema_version": "4.0.0",
+  "versionId": "0.1",
+  "name": "BastardBot-b484",
+  "desc": "Luis Model for CoreBot",
+  "culture": "en-us",
+  "tokenizerVersion": "1.0.0",
+  "intents": [
+    {
+      "name": "InsultMe"
+    },
+    {
+      "name": "None"
+    }
+  ],
+  "entities": [
+    {
+      "name": "insult",
+      "roles": []
+    }
+  ],
+  "composites": [],
+  "closedLists": [],
+  "patternAnyEntities": [],
+  "regex_entities": [],
+  "prebuiltEntities": [],
+  "model_features": [],
+  "regex_features": [],
+  "patterns": [],
+  "utterances": [
+    {
+      "text": "book a hotel in new york",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "book a restaurant",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "call me a cunt",
+      "intent": "InsultMe",
+      "entities": [
+        {
+          "entity": "insult",
+          "startPos": 10,
+          "endPos": 13
+        }
+      ]
+    },
+    {
+      "text": "find an airport near me",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "give me an insult",
+      "intent": "InsultMe",
+      "entities": []
+    },
+    {
+      "text": "i'd like to rent a car",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "insult me",
+      "intent": "InsultMe",
+      "entities": []
+    },
+    {
+      "text": "insult me then",
+      "intent": "InsultMe",
+      "entities": []
+    },
+    {
+      "text": "such a nob",
+      "intent": "InsultMe",
+      "entities": [
+        {
+          "entity": "insult",
+          "startPos": 7,
+          "endPos": 9
+        }
+      ]
+    },
+    {
+      "text": "tell me i'm a cunt",
+      "intent": "InsultMe",
+      "entities": [
+        {
+          "entity": "insult",
+          "startPos": 14,
+          "endPos": 17
+        }
+      ]
+    },
+    {
+      "text": "what am i?",
+      "intent": "InsultMe",
+      "entities": []
+    },
+    {
+      "text": "winter is coming",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "you are a proper twat",
+      "intent": "InsultMe",
+      "entities": [
+        {
+          "entity": "insult",
+          "startPos": 17,
+          "endPos": 20
+        }
+      ]
+    },
+    {
+      "text": "you're a cunt",
+      "intent": "InsultMe",
+      "entities": [
+        {
+          "entity": "insult",
+          "startPos": 9,
+          "endPos": 12
+        }
+      ]
+    }
+  ],
+  "settings": []
+}

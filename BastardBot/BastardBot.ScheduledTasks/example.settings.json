@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=BastardBotDev;Trusted_Connection=True;MultipleActiveResultSets=true"
+  },
+  "QnAMakerHost": "",
+  "QnASubscriptionKey": "",
+  "QnAKnowledgebaseId": ""
+}

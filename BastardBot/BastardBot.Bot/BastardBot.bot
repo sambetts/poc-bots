@@ -1,0 +1,26 @@
+{
+    "name": "BastardBot",
+    "description": "",
+    "services": [
+        {
+            "type": "endpoint",
+            "appId": "d4a0d750-20c2-461f-be2c-4a8b1d513345",
+            "appPassword": "S%{Ip{ySELfNKzSKqzcJb_lL]#hAlVho",
+            "endpoint": "http://localhost:3978/api/messages",
+            "id": "59101240-7b5a-11ea-9a0c-0d7a3888c21c",
+            "name": "LocalShop"
+        },
+        {
+            "type": "endpoint",
+            "appId": "d4a0d750-20c2-461f-be2c-4a8b1d513345",
+            "appPassword": "S%{Ip{ySELfNKzSKqzcJb_lL]#hAlVho",
+            "endpoint": "https://bastardbot.azurewebsites.net/api/messages",
+            "name": "Prod",
+            "id": "246"
+        }
+    ],
+    "padlock": "",
+    "version": "2.0",
+    "path": "C:\\Users\\sambetts\\source\\repos\\Random\\BastardBot\\BastardBot.Bot\\BastardBot.bot",
+    "overrides": null
+}
