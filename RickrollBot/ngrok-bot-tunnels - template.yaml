@@ -1,0 +1,11 @@
+authtoken: $ngrokAuthToken
+tunnels:
+    RickrollBot:
+        addr: https://localhost:9441
+        proto: http
+        subdomain: RickrollBot
+        host-header: localhost
+    media:
+        addr: 8445
+        proto: tcp
+        remote_addr: $streamingAddressFull
