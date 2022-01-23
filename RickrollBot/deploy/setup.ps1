@@ -12,6 +12,7 @@ Param(
     $containerTag = "latest",                           # Image tag to deploy to AKS
     $applicationInsightsKey = ""                        # Application Insights instrumentation key
 )
+$aksNamespace = "rickrollbot"       # Also used for helm template name
 
 if ($azureLocation -eq "" -or $resourceGroupName -eq "" -or $publicIpName -eq "" -or $botDomain -eq "" -or $acrName -eq "" -or $AKSClusterName -eq "" -or $applicationId -eq "" -or $applicationSecret -eq ""  -or $botName -eq "" -or $containerTag -eq "" -or $applicationInsightsKey -eq "") {
     Write-Host "Missing parameters - please check & run again" -ForegroundColor Red
@@ -20,7 +21,7 @@ if ($azureLocation -eq "" -or $resourceGroupName -eq "" -or $publicIpName -eq ""
 
 # Init script
 $AKSmgResourceGroup = "MC_"+$resourceGroupName+"_"+"$AKSClusterName"+"_"+$azureLocation
-Write-Host "(Got from ENV): RG: $resourceGroupName, MC rg: $AKSmgResourceGroup, location: $azureLocation" -ForegroundColor Green
+Write-Host "(Args): RG: $resourceGroupName, MC rg: $AKSmgResourceGroup, location: $azureLocation" -ForegroundColor Green
 Write-Host "Environment Azure CL: $(az --version)"
 
 # Create the resource group if not already created
@@ -87,13 +88,13 @@ az aks get-credentials --resource-group $resourceGroupName --name $AKSClusterNam
 # on first run this will give errors, but when running it again it will restore things to initial state.
 Write-Host "Cleaning up resources from previous script execution. This will error if this is the 1st run, and this is fine..." -ForegroundColor Yellow
 # Uninstall via helm the bot
-helm uninstall classroombot --namespace classroombot
+helm uninstall $aksNamespace --namespace $aksNamespace
 # Delete certificates namespace
 kubectl delete ns cert-manager
 # Delete ngix ingress
 kubectl delete ns ingress-nginx
 # make sure the secret is updated - so delete it if there
-kubectl delete secrets bot-application-secrets --namespace classroombot
+kubectl delete secrets bot-application-secrets --namespace $aksNamespace
 
 # Create Kubernetes resources
 Write-Host "About to create cert-manager namespace"
@@ -110,10 +111,10 @@ Write-Host "Waiting for cert-manager to be ready"
 kubectl wait pod -n cert-manager --for condition=ready --timeout=60s --all
 
 Write-Host "Installing cluster SSL issuer" -ForegroundColor Yellow
-kubectl apply -f .\deploy\cluster-issuer.yaml
+kubectl apply -f .\cluster-issuer.yaml
 # Write-Output "Sleeping for 30 secs before retrying
 Start-Sleep -Seconds 30
-kubectl apply -f .\deploy\cluster-issuer.yaml
+kubectl apply -f .\cluster-issuer.yaml
 
 # Setup Ingress
 Write-Output "Creating ingress-nginx namespace"
@@ -125,22 +126,22 @@ helm repo add stable https://charts.helm.sh/stable
 helm repo update
 
 Write-Host "Installing ingress-nginx" -ForegroundColor Yellow
-helm install nginx-ingress ingress-nginx/ingress-nginx --version 3.36.0 --create-namespace --namespace ingress-nginx --set controller.replicaCount=1 --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux --set controller.service.enabled=false --set controller.admissionWebhooks.enabled=false --set controller.config.log-format-stream="" --set controller.extraArgs.tcp-services-configmap=ingress-nginx/classroombot-tcp-services --set controller.service.loadBalancerIP=$publicIpAddress
+helm install nginx-ingress ingress-nginx/ingress-nginx --version 3.36.0 --create-namespace --namespace ingress-nginx --set controller.replicaCount=1 --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux --set controller.service.enabled=false --set controller.admissionWebhooks.enabled=false --set controller.config.log-format-stream="" --set controller.extraArgs.tcp-services-configmap=ingress-nginx/bot-tcp-services --set controller.service.loadBalancerIP=$publicIpAddress
 
-# Setup AKS namespace for classroombot
-Write-Host "Creating classroombot namespace and bot secret that holds BOT_ID, BOT_SECRET, BOT_NAME, Cognitive Service Key and Middleware End Point" -ForegroundColor Yellow
-kubectl create ns classroombot
-kubectl create secret generic bot-application-secrets --namespace classroombot --from-literal=applicationId="$applicationId" --from-literal=applicationSecret="$applicationSecret" --from-literal=botName="$botName" --from-literal=applicationInsightsKey="$applicationInsightsKey"
+# Setup AKS namespace for bot
+Write-Host "Creating $aksNamespace namespace and bot secret that holds BOT_ID, BOT_SECRET, BOT_NAME, Cognitive Service Key and Middleware End Point" -ForegroundColor Yellow
+kubectl create ns $aksNamespace
+kubectl create secret generic bot-application-secrets --namespace $aksNamespace --from-literal=applicationId="$applicationId" --from-literal=applicationSecret="$applicationSecret" --from-literal=botName="$botName" --from-literal=applicationInsightsKey="$applicationInsightsKey"
 
 # Setup Helm for recording bot
-Write-Host "Setting up helm for classroombot for bot domain: $botDomain and Public IP: $publicIpAddress" -ForegroundColor Yellow
+Write-Host "Setting up helm for $aksNamespace for bot domain: $botDomain and Public IP: $publicIpAddress" -ForegroundColor Yellow
 
-helm install classroombot ./deploy/classroombot --namespace classroombot --create-namespace --set host=$botDomain --set public.ip=$publicIpAddress --set image.domain="$acrName.azurecr.io" --set image.tag=$containerTag
+helm install $aksNamespace ./$aksNamespace --namespace $aksNamespace --create-namespace --set host=$botDomain --set public.ip=$publicIpAddress --set image.domain="$acrName.azurecr.io" --set image.tag=$containerTag
 
 # Validate certificate, wait a minute or two
 Write-Host "Sleeping for 5 mins before running validation..." -ForegroundColor Yellow
 Start-Sleep -Seconds 300
-$certValidation = kubectl get cert -n classroombot
+$certValidation = kubectl get cert -n $aksNamespace
 if ($certValidation -like '*True*') 
 {
     Write-Host "SSL configuration working & verified" -ForegroundColor Green
@@ -149,7 +150,7 @@ else
 {
     Write-Host "SSL configuration validation failed..." -ForegroundColor red
     Write-Output "it might need some more time, or something went wrong..."
-    Write-Output "try manually executing: 'kubectl get cert -n classroombot' in a few minutes."
+    Write-Output "try manually executing: 'kubectl get cert -n $aksNamespace' in a few minutes."
     exit -1    
 }
 
