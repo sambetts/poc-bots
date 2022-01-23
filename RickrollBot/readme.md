@@ -71,10 +71,10 @@ For developer machines you'll want to run the bot directly from Visual Studio in
 
 The ngrok output should look something like this:
 
-- Region United States
-- tcp://1.tcp.ngrok.io:26065 -\&gt; localhost:8445
-- http://rickrollbot.ngrok.io -\&gt; https://localhost:9441
-- https://rickrollbot.ngrok.io -\&gt; https://localhost:9441
+    - Region United States
+    - tcp://1.tcp.ngrok.io:26065 -> localhost:8445
+    - http://rickrollbot.ngrok.io -> https://localhost:9441
+    - https://rickrollbot.ngrok.io -> https://localhost:9441
 
 ## Dev Only: Generate SSL for Bot Media TCP Endpoint
 As this bot receives audio/video streams it must expose a TCP endpoint with SSL in addition to the normal HTTP endpoints. For dev we must request these certificates manually; in production there is an AKS service we deploy to do it automatically.
@@ -143,6 +143,7 @@ Edit the file, replacing values in the .bat from "RickrollBot\BotService\Bot.Con
 - %AzureSettings__CertificateThumbprint%
 
 Example file:
+
     set /A CallSignalingPort2 = 9441 + 1
 
     REM Deleting bindings
@@ -193,16 +194,21 @@ Dev only: test ngrok URL - https://$botDomain (e.g https://rickrollbot.ngrok.io)
 
 Next let's check if the bot can join a Teams call.
     POST to https://rickrollbot.ngrok.io/joinCall
+```json
+
     {
         "JoinURL": $teamsJoinUrl,
         "DisplayName": "Rick Astley"
     }
+```
 
 Example body:
+```json
     {
         "JoinURL": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTMyM2M4YTYtY2ZiMi00NjkxLWI1YzQtZDA4MzJjM2E4NWFm%40thread.v2/0?context=%7b%22Tid%22%3a%22ffcdb539-892e-4eef-94f6-0d9851c479ba%22%2c%22Oid%22%3a%2248fe59a4-c951-43ca-9d16-972083aa6305%22%7d",
         "DisplayName": "Rick Astley"
     }
+```
 
 And with that, Rick should join your Teams call.
 
