@@ -1,6 +1,6 @@
 ﻿apiVersion: v2
-name: classroombot
-description: Helm chart for deploying classroombot
+name: rickrollbot
+description: Helm chart for deploying rickrollbot
 icon: ""
 
 # A chart can be either an 'application' or a 'library' chart.
