@@ -158,5 +158,15 @@ namespace RickrollBot.Model.Extension
         {
             throw new NotImplementedException();
         }
+
+        public Task StartHoldMusicAsync(Prompt customPrompt, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task StopHoldMusicAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
