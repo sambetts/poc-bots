@@ -1,14 +1,14 @@
 
 Param(
     $azureLocation = "westeurope",                      # Azure region 
-    $resourceGroupName = "ClassroomBotProd",            # Where to create AKS and where the public IP is created
+    $resourceGroupName = "AKSBotProd",                  # Where to create AKS and where the public IP is created
     $publicIpName = "AksIpStandard",                    # Name of IP address
     $botDomain = "",                                    # Bot DNS, e.g 
     $acrName = "",                                      # Container registry name (not FQDN)
     $AKSClusterName = "ClassroomCluster",               # AKS resource name to use/create
     $applicationId = "",                                # Bot appID
     $applicationSecret = "",                            # Bot secret
-    $botName = "",                                      # Bot service name, e.g 'ClassroomBotProd'
+    $botName = "",                                      # Bot service name, e.g 'ProdBot'
     $containerTag = "latest",                           # Image tag to deploy to AKS
     $applicationInsightsKey = ""                        # Application Insights instrumentation key
 )
@@ -112,6 +112,7 @@ kubectl wait pod -n cert-manager --for condition=ready --timeout=60s --all
 
 Write-Host "Installing cluster SSL issuer" -ForegroundColor Yellow
 kubectl apply -f .\cluster-issuer.yaml
+
 # Write-Output "Sleeping for 30 secs before retrying
 Start-Sleep -Seconds 30
 kubectl apply -f .\cluster-issuer.yaml
@@ -129,7 +130,7 @@ Write-Host "Installing ingress-nginx" -ForegroundColor Yellow
 helm install nginx-ingress ingress-nginx/ingress-nginx --version 3.36.0 --create-namespace --namespace ingress-nginx --set controller.replicaCount=1 --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux --set controller.service.enabled=false --set controller.admissionWebhooks.enabled=false --set controller.config.log-format-stream="" --set controller.extraArgs.tcp-services-configmap=ingress-nginx/bot-tcp-services --set controller.service.loadBalancerIP=$publicIpAddress
 
 # Setup AKS namespace for bot
-Write-Host "Creating $aksNamespace namespace and bot secret that holds BOT_ID, BOT_SECRET, BOT_NAME, Cognitive Service Key and Middleware End Point" -ForegroundColor Yellow
+Write-Host "Creating $aksNamespace namespace and bot secret that holds BOT_ID, BOT_SECRET, BOT_NAME, App Insights key" -ForegroundColor Yellow
 kubectl create ns $aksNamespace
 kubectl create secret generic bot-application-secrets --namespace $aksNamespace --from-literal=applicationId="$applicationId" --from-literal=applicationSecret="$applicationSecret" --from-literal=botName="$botName" --from-literal=applicationInsightsKey="$applicationInsightsKey"
 
