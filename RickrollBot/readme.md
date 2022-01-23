@@ -34,7 +34,7 @@ Most of these values we'll get after creating the resources below.
     - **Production only:** this is your own domain.
     - **Dev** : this is your reserved NGrok domain
 3. **Production only:**
-    - Azure container registry name/URL - $acrName (for &quot;contosoacr&quot;).
+    - Azure container registry name/URL - $acrName (for 'contosoacr').
     - Azure App Service to host Teams App; the DNS hostname - $teamsAppDNS.
     - Application Insights instrumentation key - $appInsightsKey
 4. Azure AD: tenant ID, Bot App ID &amp; secret.
@@ -48,12 +48,12 @@ These steps differ depending on whether you plan on running the bot in AKS/K8 or
 Some configuration specific files aren't tracked in git, so need creating locally from the templates.
 
 - **Production only:**
-    - Copy &quot;deploy\cluster-issuer - template.yaml&quot; to &quot;deploy\cluster-issuer.yaml&quot;
-    - Edit &quot;cluster-issuer.yaml&quot; and replace &quot;$YOUR\_EMAIL\_HERE&quot; with your own email.
+    - Copy 'deploy\cluster-issuer - template.yaml' to 'deploy\cluster-issuer.yaml'
+    - Edit 'cluster-issuer.yaml' and replace '$YOUR\_EMAIL\_HERE' with your own email.
         - This is used for LetsEncrypt and needs to be a proper email address; not a free one (Gmail, Outlook, etc)
 - **Dev Only**
-- Copy &quot;BotService\Bot.Console\template.env&quot; to just &quot;BotService\Bot.Console\\.env&quot;
-    - If Windows explorer doesn't like the rename, you may need to run: copy .\template.env ".\.env"
+    - Copy 'BotService\Bot.Console\template.env' to just 'BotService\Bot.Console\\.env'
+        - If Windows explorer doesn't like the rename, you may need to run: copy .\template.env ".\\.env"
 
 ## Dev Only: Setup ngrok configuration
 For developer machines you'll want to run the bot directly from Visual Studio instead of from a container. For this to happen, we need inbound tunnelling to the right places.
@@ -67,7 +67,7 @@ For developer machines you'll want to run the bot directly from Visual Studio in
     - $ngrokAuthToken
     - $streamingAddressFull
 
-3. Run ngrok: "ngrok start --all -config .\ngrok-bot-tunnels.yaml"
+3. Run ngrok to open tunnels like so: "ngrok start --all -config .\ngrok-bot-tunnels.yaml"
 
 The ngrok output should look something like this:
 
@@ -78,6 +78,8 @@ The ngrok output should look something like this:
 
 ## Dev Only: Generate SSL for Bot Media TCP Endpoint
 As this bot receives audio/video streams it must expose a TCP endpoint with SSL in addition to the normal HTTP endpoints. For dev we must request these certificates manually; in production there is an AKS service we deploy to do it automatically.
+
+For an AKS deployment the following tasks are automated in the cluster, but for dev we need to do this ourselves. 
 
 1. Generate an SSL certificate for your developer ngrok addresses as per [this guide](https://github.com/microsoftgraph/microsoft-graph-comms-samples/blob/master/Samples/V1.0Samples/AksSamples/teams-recording-bot/docs/setup/certificate.md#%23generate-ssl-certificate).
     - In short, you need to use [certbot](https://certbot.eff.org/instructions?ws=other&os=windows) to generate SSL certificates via LetsEncrypt (an org that give free SSL cerificates out. Perfect for us).
@@ -94,7 +96,7 @@ As this bot receives audio/video streams it must expose a TCP endpoint with SSL 
 5. Take note of the certificate thumbprint – $certThumbPrint
 
 ## Create Azure Resources
-Create: Azure Bot Service, and for production only: Application Insights
+Create: Azure Bot Service, and for production only: Application Insights. 
 
 1. Create new "Azure bot" in the Azure portal (can use az cmd if you wish too). 
     - Use the free tier. 
@@ -106,31 +108,30 @@ Create: Azure Bot Service, and for production only: Application Insights
 
 ## Grant Bot Teams Access
 The bot app registration needs the rights to join meetings next. In "API permissions" add the Graph API permissions granted specified in the requirements.
-Important: don't forget to grant admin consent to these permissions. 
+**Important**: don't forget to grant admin consent to these permissions. 
 
 ## Production only: build Docker image of bot
 For AKS deployments we first need an image of the bot service. You don't if you're just developing locally. 
 1. Create an Azure container registry to push/pull bot image to.
-2. With Docker in &quot;Windows container&quot; mode, build a bot image from the root directory.
+2. With Docker in 'Windows container' mode, build a bot image from the root directory.
     - docker build -f ./build/Dockerfile . -t [TAG]
-        - [TAG] is the FQDN of you container registry + image name, e.g. &quot;RickrollBotregistry.azurecr.io/RickrollBot:1.0.5&quot;
-3. Push image to container registry with &quot;docker push&quot;. Take note of version tag (e.g &quot;RickrollBotregistry.azurecr.io/RickrollBot:1.0.5&quot; – this number/value is your $containerTag).
-    - You may need to authenticate to your ACR first with &quot;az acr login --name $acrName&quot;
+        - [TAG] is the FQDN of you container registry + image name, e.g. 'RickrollBotregistry.azurecr.io/RickrollBot:1.0.5'
+3. Push image to container registry with 'docker push'. Take note of version tag (e.g 'RickrollBotregistry.azurecr.io/RickrollBot:1.0.5' – this number/value is your $containerTag).
+    - You may need to authenticate to your ACR first with 'az acr login --name $acrName'
 
 ## Production only: Create AKS resource via PowerShell
-1. Create public IP address (standard SKU) for bot domain &amp; create/update DNS A-record. Resource-group can be the same as AKS resource.
-2. Run &quot;setup.ps1&quot; to create AKS + bot architecture, with parameters:
-
-    - $azureLocation – example: &quot;westeurope&quot;
-    - $resourceGroupName – example: &quot;RickrollBotProd&quot;
-    - $publicIpName – example: &quot;AksIpStandard&quot;
-    - $botDomain – example: &quot;RickrollBot.teamsplatform.app&quot;
-    - $acrName – example: &quot;RickrollBotregistry&quot;
-    - $AKSClusterName– example: &quot;ClassroomCluster&quot;
-    - $applicationId – example: &quot;151d9460-b018-4904-8f81-14203ac3cb4f&quot;
-    - $applicationSecret – example: &quot;9p96lolQJSD~\*\*\*\*\*\*\*\*\*\*\*\*&quot; (example truncated)
-    - $botName – example: &quot;RickrollBotProd&quot;
-    - $containerTag– example: &quot;latest&quot;
+1. Create public IP address (standard SKU) for bot domain & create/update DNS A-record. Resource-group can be the same as AKS resource.
+2. Run 'setup.ps1' to create AKS + bot architecture, with parameters:
+    - $azureLocation – example: 'westeurope'
+    - $resourceGroupName – example: 'RickrollBotProd'
+    - $publicIpName – example: 'AksIpStandard'
+    - $botDomain – example: 'RickrollBot.teamsplatform.app'
+    - $acrName – example: 'RickrollBotregistry'
+    - $AKSClusterName– example: 'ClassroomCluster'
+    - $applicationId – example: '151d9460-b018-4904-8f81-14203ac3cb4f'
+    - $applicationSecret – example: '9p96lolQJSD~\*\*\*\*\*\*\*\*\*\*\*\*' (example truncated)
+    - $botName – example: 'RickrollBotProd'
+    - $containerTag– example: 'latest'
 
 ## Dev Only: Create netsh http and ssl bindings
 Because we're hosting this bot outside of IIS, we need to do some once-only configuration to create SSL bindings.
@@ -176,7 +177,7 @@ If you're deploying to AKS, this step won't be necessary as configuration is sto
     - AzureSettings\_\_CertificateThumbprint - $certThumbPrint
     - AzureSettings\_\_InstancePublicPort - $streamingAddressPort
 
-2. Run Visual Studio as administrator and start debugging &quot;Bot.Console&quot;.
+2. Run Visual Studio as administrator and start debugging 'Bot.Console'.
     - Set Bot.Console as the start-up project.
 
 # Testing and Running Solution
