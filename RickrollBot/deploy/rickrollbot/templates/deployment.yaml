@@ -88,6 +88,14 @@ spec:
           value: "{{ .Values.internal.port }}"
         - name: AzureSettings__PlaceCallEndpointUrl
           value: https://graph.microsoft.com/v1.0
+        - name: AzureSettings__H2641280x720x30FpsFile
+          value: rickroll.1280x720x30.h264
+        - name: AzureSettings__H264320x180x15FpsFile
+          value: rickroll.320x180x15.h264
+        - name: AzureSettings__H264640x360x30xFpsFile
+          value: rickroll.640x360x30.h264
+        - name: AzureSettings__WavFile
+          value: RickAstley.wav
         - name: AzureSettings__CaptureEvents
           value: "{{ .Values.container.env.azureSetting.captureEvents }}"
         - name: AzureSettings__EventsFolder
