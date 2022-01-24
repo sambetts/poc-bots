@@ -156,16 +156,31 @@ Check the bot pods (i.e the containers running Rickroll bot) are creating and yo
     rickrollbot-1   0/1     ContainerCreating   0          16m
     rickrollbot-2   0/1     ContainerCreating   0          16m
 
-Status of the pods should eventually say "".
+Status of the pods should eventually say "Running" with 0 restarts. It might take upto an hour to pull the image though. 
 
-Check the load-balancer has the right IP address assigned:
+**Check the load-balancer has the right IP address assigned:**
 - kubectl get svc -n ingress-nginx
 
-Check the TLS service is rununing:
+It should show:
+
+    NAME                                     TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)                                                                      AGE
+    nginx-ingress-ingress-nginx-controller   LoadBalancer   10.0.101.115   20.103.XXX.XXX   80:32215/TCP,443:30505/TCP,28550:32010/TCP,28551:32552/TCP,28552:31180/TCP   9h
+
+**Check the TLS service is rununing:**
 - kubectl get cert -n rickrollbot
+
+It should show:
+
+    NAME          READY   SECRET        AGE
+    ingress-tls   True    ingress-tls   1h
 
 Something not right? Check events with:
 - kubectl get events --all-namespaces
+
+## Reconfigure Service
+If you need to redeploy just the bot image or reconfigure it, you can do so without completely redeploying everything with this:
+
+    helm upgrade rickrollbot ./rickrollbot --namespace rickrollbot --set host=rickrollbot.teamsplatform.app --set public.ip=20.103.237.192 --set image.domain="rickrollbot.azurecr.io" --set image.tag=1 --set scale.replicaCount=1
 # Dev Only: Create netsh http and ssl bindings
 Because we're hosting this bot outside of IIS, we need to do some once-only configuration to create SSL bindings.
 In "RickrollBot\build" copy "certs-dev-template.bat" to "certs-dev.bat". 
