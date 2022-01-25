@@ -3,6 +3,8 @@ RickrollBot is a "Real-time Media Platform" Teams bot that is designed to Rickro
 
 The purpose of RickrollBot is two-fold: a research project to experiment with especially for people interested in these types of bots, and for the lulz too.
 
+![Rickoll bot sending the Rickroll via the bots' webcam](rickrollbotscreenshot.jpg)
+
 It's designed to run either locally via ngrok (usually), or in Azure Kubernetes Service so it can scale for "production" scenarios. 
 
 It's not trivial to get running mainly thanks to the fact that these types of bots require TCP-level integration into the host OS. This means they won't work inside the usual context of IIS or any other webserver which would handle a lot of the hassle around SSL and TCP. But this guide should get you there regardless, if you have some patience. It's all in a good cause though: Rick Astley in your Teams meetings. 
@@ -180,7 +182,9 @@ Something not right? Check events with:
 ## Reconfigure Service
 If you need to redeploy just the bot image or reconfigure it, you can do so without completely redeploying everything with this:
 
-    helm upgrade rickrollbot ./rickrollbot --namespace rickrollbot --set host=rickrollbot.teamsplatform.app --set public.ip=20.103.237.192 --set image.domain="rickrollbot.azurecr.io" --set image.tag=1 --set scale.replicaCount=1
+    helm upgrade rickrollbot ./rickrollbot --namespace rickrollbot --set host=rickrollbot.teamsplatform.app --set public.ip=20.103.XXX.XXX --set image.domain="rickrollbot.azurecr.io" --set image.tag=1 --set scale.replicaCount=1
+
+If you've upgrade the bot solution; push a new tag to the container registry and apply the new tag with this command. K8 will do the rest!
 # Dev Only: Create netsh http and ssl bindings
 Because we're hosting this bot outside of IIS, we need to do some once-only configuration to create SSL bindings.
 In "RickrollBot\build" copy "certs-dev-template.bat" to "certs-dev.bat". 
@@ -274,6 +278,14 @@ Example body:
 And with that, Rick should join your Teams call.
 
 # Troubleshooting
+Test access to TCP ports:
+
+    Test-NetConnection -ComputerName $botDomain -Port InstancePublicPort
+
+You should see:
+
+    TcpTestSucceeded : True
+
 Review logs Teams control messages with ngrok log: http://127.0.0.1:4040
 
 Review Visual Studio output/App Insights Telemetry. Here's a working bot start-up log:
