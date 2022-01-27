@@ -36,11 +36,24 @@ namespace RickrollBot.Services.Util
             else
             {
                 // Filter config set in ServiceHost.Configure should take care of if we want to track or not
-                _telemetryClient.TrackTrace(logString);
+                var aiSeverityLevel = SeverityLevel.Verbose;
+                if (logEvent.Level == System.Diagnostics.TraceLevel.Info)
+                {
+                    aiSeverityLevel = SeverityLevel.Information;
+                }
+                else if (logEvent.Level == System.Diagnostics.TraceLevel.Warning)
+                {
+                    aiSeverityLevel = SeverityLevel.Warning;
+                }
+                else if (logEvent.Level == System.Diagnostics.TraceLevel.Error)
+                {
+                    aiSeverityLevel = SeverityLevel.Error;
+                }
+                _telemetryClient.TrackTrace(logString, aiSeverityLevel);
             }
 
 #if DEBUG
-            if (logEvent.Level != System.Diagnostics.TraceLevel.Verbose && logEvent.Level != System.Diagnostics.TraceLevel.Info)
+            if (logEvent.Level != System.Diagnostics.TraceLevel.Verbose)
             {
                 Console.WriteLine(logString);
             }
