@@ -7,6 +7,9 @@ using Microsoft.Bot.Builder;
 
 namespace EchoBot.Controllers
 {
+    /// <summary>
+    /// Just to send a follow-up to an existing conversation
+    /// </summary>
     [Route("api/ResumeTeamsConversation")]
     public class ResumeTeamsConversationController : ControllerBase
     {
@@ -21,10 +24,15 @@ namespace EchoBot.Controllers
             this._botConversationCache = botConversationCache;
         }
 
-        // POST: api/ResumeTeamsConversation?userId=48fe59a4-c951-43ca-9d16-972083aa6305
+        // POST: api/ResumeTeamsConversation?userId=48fe59a4-c951-43ca-9d16-972083aa6305&message=Hi there
         [HttpPost]
-        public async Task<IActionResult> SayHiAsync(string userId)
+        public async Task<IActionResult> ResumeTeamsConversation(string userId, string message)
         {
+            if (string.IsNullOrEmpty(message))
+            {
+                return BadRequest("No message to send");
+            }
+
             var userCache = _botConversationCache.GetCachedUser(userId);
             if (userCache != null)
             {
@@ -41,17 +49,11 @@ namespace EchoBot.Controllers
                 // Ping an update using previous conversation reference (cached conversation ID)
                 await ((BotAdapter)_adapter).ContinueConversationAsync(_config.MicrosoftAppId, previousConversationReference,
                     async (turnContext, cancellationToken)
-                        => await BotCallback("One time", turnContext, cancellationToken), cancellationToken);
+                        => await turnContext.SendActivityAsync(message, cancellationToken: cancellationToken), cancellationToken);
 
                 return Ok();
             }
             return NotFound("User has no cached threads");
-        }
-
-
-        private async Task BotCallback(string message, ITurnContext turnContext, CancellationToken cancellationToken)
-        {
-            await turnContext.SendActivityAsync(message, cancellationToken: cancellationToken);
         }
     }
 }
