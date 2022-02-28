@@ -4,3 +4,9 @@
 
 /RickrollBot/build/certs-dev.bat
 /RickrollBot/ngrok-bot-tunnels.yaml
+/EchoBot/.vs/EchoBot1
+/EchoBot/EchoBot/bin/Debug/netcoreapp3.1
+/EchoBot/EchoBot/obj
+/EchoBot/.vs/EchoBot/v17
+/EchoBot/EchoBot/bin/Debug/net6.0
+/EchoBot/.vs/EchoBot/config
