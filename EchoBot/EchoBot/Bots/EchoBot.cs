@@ -1,8 +1,4 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-//
-// Generated with Bot Builder V4 SDK Template for Visual Studio EchoBot v4.15.0
-
+using EchoBot;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Schema;
 using System.Collections.Generic;
@@ -13,6 +9,13 @@ namespace EchoBot1.Bots
 {
     public class EchoBot : ActivityHandler
     {
+        private readonly BotConversationCache botConversationCache;
+
+        public EchoBot(BotConversationCache botConversationCache)
+        {
+            this.botConversationCache = botConversationCache;
+        }
+
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
         {
             var replyText = $"Echo: {turnContext.Activity.Text}";
@@ -26,9 +29,14 @@ namespace EchoBot1.Bots
             {
                 if (member.Id != turnContext.Activity.Recipient.Id)
                 {
+                    // Cache conversation
+                    await botConversationCache.AddConversationReferenceToCache((Activity)turnContext.Activity);
+
+                    // Say hi
                     await turnContext.SendActivityAsync(MessageFactory.Text(welcomeText, welcomeText), cancellationToken);
                 }
             }
+
         }
     }
 }

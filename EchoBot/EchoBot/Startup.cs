@@ -1,8 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-//
-// Generated with Bot Builder V4 SDK Template for Visual Studio EchoBot v4.15.0
-
+﻿using CommonUtils;
+using EchoBot;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Bot.Builder;
@@ -27,6 +24,14 @@ namespace EchoBot1
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddHttpClient().AddControllers().AddNewtonsoftJson();
+
+            var config = new Config(this.Configuration);
+            services.AddSingleton(config);
+            var telemetry = new DebugTracer(config.AppInsightsInstrumentationKey, "Web");
+            services.AddSingleton(telemetry);
+
+            services.AddSingleton(new BotConversationCache(config));
+
 
             // Create the Bot Framework Authentication to be used with the Bot Adapter.
             services.AddSingleton<BotFrameworkAuthentication, ConfigurationBotFrameworkAuthentication>();
