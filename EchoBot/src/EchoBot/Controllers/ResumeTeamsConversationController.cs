@@ -39,7 +39,6 @@ namespace EchoBot.Controllers
                 var previousConversationReference = new ConversationReference()
                 {
                     ChannelId = userCache.ChannelId,
-                    Bot = new ChannelAccount() { Id = $"28:{_config.AppCatalogTeamAppId}" },
                     ServiceUrl = userCache.ServiceUrl,
                     Conversation = new ConversationAccount() { Id = userCache.ConversationId },
                 };

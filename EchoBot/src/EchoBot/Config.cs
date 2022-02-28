@@ -10,8 +10,6 @@ namespace EchoBot
         }
 
         [ConfigValue]
-        public string AppCatalogTeamAppId { get; set; } = string.Empty;
-        [ConfigValue]
         public string MicrosoftAppId { get; set; } = string.Empty;
         [ConfigValue]
         public string MicrosoftAppPassword { get; set; } = string.Empty;
