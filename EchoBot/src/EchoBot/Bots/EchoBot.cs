@@ -20,6 +20,8 @@ namespace EchoBot1.Bots
         {
             var replyText = $"Echo: {turnContext.Activity.Text}";
             await turnContext.SendActivityAsync(MessageFactory.Text(replyText, replyText), cancellationToken);
+
+            await botConversationCache.AddConversationReferenceToCache((Activity)turnContext.Activity);
         }
 
         protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)

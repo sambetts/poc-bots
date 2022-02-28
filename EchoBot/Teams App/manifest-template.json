@@ -1,0 +1,55 @@
+{
+    "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.11/MicrosoftTeams.schema.json",
+    "manifestVersion": "1.11",
+    "version": "1.0.0",
+    "id": "<<AP_IPP>>",
+    "packageName": "com.package.name",
+    "developer": {
+        "name": "Contoso, Inc.",
+        "websiteUrl": "https://constoso.com",
+        "privacyUrl": "https://constoso.com",
+        "termsOfUseUrl": "https://constoso.com"
+    },
+    "icons": {
+        "color": "color.png",
+        "outline": "outline.png"
+    },
+    "name": {
+        "short": "EchoBot Enhanced (Dev)",
+        "full": "EchoBot Enhanced (Dev)"
+    },
+    "description": {
+        "short": "Really boring bot",
+        "full": "Seriously, don't talk to this bot."
+    },
+    "accentColor": "#FFFFFF",
+    "staticTabs": [
+        {
+            "entityId": "conversations",
+            "scopes": [
+                "personal"
+            ]
+        },
+        {
+            "entityId": "about",
+            "scopes": [
+                "personal"
+            ]
+        }
+    ],
+    "bots": [
+        {
+            "botId": "<<AP_IPP>>",
+            "scopes": [
+                "personal"
+            ],
+            "supportsFiles": false,
+            "isNotificationOnly": false
+        }
+    ],
+    "permissions": [
+        "identity",
+        "messageTeamMembers"
+    ],
+    "validDomains": []
+}

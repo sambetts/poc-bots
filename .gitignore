@@ -14,3 +14,10 @@
 /EchoBot/CommonUtils/obj
 /EchoBot/.vs/EchoBot/DesignTimeBuild
 /EchoBot/EchoBot/appsettings.Development.json
+/EchoBot/src/.vs
+/EchoBot/src/CommonUtils/obj
+/EchoBot/src/EchoBot/bin/Debug
+/EchoBot/src/EchoBot/obj
+/EchoBot/src/CommonUtils/bin/Debug/net6.0
+/EchoBot/src/EchoBot/appsettings.Development.json
+/EchoBot/Teams App/manifest.json
