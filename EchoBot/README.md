@@ -17,6 +17,7 @@ protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersA
 ```
 
 …and it looks like this:
+
 ![alt](imgs/image001.png)
 
 The bot notices a new conversation and proactively introduces itself.
@@ -25,13 +26,15 @@ The problem is that in Teams, this new conversation event only happens once per 
 After that we’re just returning to the same conversation and resuming the previous thread.
 
 However, it is possible for the bot to also resume the conversation, assuming it has a reference to the previous conversation in some cache or other:
+
 ![alt](imgs/image002.png)
 
-That 2nd line from the bot is our own code again proactively saying something.
-This we do with our own API call:
+That 2nd line from the bot is our own code again proactively saying something. This we do with our own API call:
+
 ![alt](imgs/image003.png)
 
 And the code has the previous thread cached:
+
 ![alt](imgs/image004.png)
 
 The "RowKey" is the user Azure AD ID for the person talking to the bot, btw. 
