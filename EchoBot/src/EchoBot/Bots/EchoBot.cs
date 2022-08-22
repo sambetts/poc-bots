@@ -9,11 +9,11 @@ namespace EchoBot1.Bots
 {
     public class EchoBot : ActivityHandler
     {
-        private readonly BotConversationCache botConversationCache;
+        private readonly IBotConversationCache _botConversationCache;
 
-        public EchoBot(BotConversationCache botConversationCache)
+        public EchoBot(IBotConversationCache botConversationCache)
         {
-            this.botConversationCache = botConversationCache;
+            this._botConversationCache = botConversationCache;
         }
 
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
@@ -30,7 +30,7 @@ namespace EchoBot1.Bots
                 if (member.Id != turnContext.Activity.Recipient.Id)
                 {
                     // Cache conversation
-                    await botConversationCache.AddConversationReferenceToCache((Activity)turnContext.Activity);
+                    await _botConversationCache.AddConversationReferenceToCache((Activity)turnContext.Activity);
 
                     // Say hi
                     await turnContext.SendActivityAsync(MessageFactory.Text(welcomeText, welcomeText), cancellationToken);

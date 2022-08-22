@@ -15,9 +15,9 @@ namespace EchoBot.Controllers
     {
         private readonly IBotFrameworkHttpAdapter _adapter;
         private readonly Config _config;
-        private readonly BotConversationCache _botConversationCache;
+        private readonly IBotConversationCache _botConversationCache;
 
-        public ResumeTeamsConversationController(IBotFrameworkHttpAdapter adapter, Config config, BotConversationCache botConversationCache)
+        public ResumeTeamsConversationController(IBotFrameworkHttpAdapter adapter, Config config, IBotConversationCache botConversationCache)
         {
             this._adapter = adapter;
             this._config = config;

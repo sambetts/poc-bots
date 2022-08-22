@@ -9,7 +9,21 @@ using System.Threading.Tasks;
 
 namespace EchoBot
 {
-    public class BotConversationCache
+    public class DummyBotConversationCache : IBotConversationCache
+    {
+        public Task AddConversationReferenceToCache(Activity activity) => Task.CompletedTask;
+
+        public Task AddOrUpdateUserAndConversationId(ConversationReference conversationReference, string serviceUrl, string channelId) => Task.CompletedTask;
+
+        public bool ContainsUserId(string aadId) => false;
+
+        public CachedUserAndConversationData GetCachedUser(string aadObjectId) => null;
+
+        public List<CachedUserAndConversationData> GetCachedUsers() => new List<CachedUserAndConversationData>();
+
+        public Task RemoveFromCache(string aadObjectId) => Task.CompletedTask;
+    }
+    public class AzureTableBotConversationCache : IBotConversationCache
     {
         #region Privates & Constructors
 
@@ -18,7 +32,7 @@ namespace EchoBot
         private Config _config;
         private TableClient _tableClient;
 
-        public BotConversationCache(Config config)
+        public AzureTableBotConversationCache(Config config)
         {
             _config = config;
             this._tableClient = new TableClient(
@@ -38,7 +52,7 @@ namespace EchoBot
         }
         #endregion
 
-        internal async Task RemoveFromCache(string aadObjectId)
+        public async Task RemoveFromCache(string aadObjectId)
         {
             CachedUserAndConversationData u = null;
             if (_userIdConversationCache.TryGetValue(aadObjectId, out u))
@@ -59,7 +73,7 @@ namespace EchoBot
             await AddOrUpdateUserAndConversationId(conversationReference, activity.ServiceUrl, activity.ChannelId);
         }
 
-        internal async Task AddOrUpdateUserAndConversationId(ConversationReference conversationReference, string serviceUrl, string channelId)
+        public async Task AddOrUpdateUserAndConversationId(ConversationReference conversationReference, string serviceUrl, string channelId)
         {
             CachedUserAndConversationData u = null;
             var userId = conversationReference.User.AadObjectId ?? conversationReference.User.Id;
@@ -112,15 +126,36 @@ namespace EchoBot
             return _userIdConversationCache.Values.ToList();
         }
 
-        internal CachedUserAndConversationData GetCachedUser(string aadObjectId)
+        public CachedUserAndConversationData GetCachedUser(string aadObjectId)
         {
             return _userIdConversationCache.Values.Where(u => u.RowKey == aadObjectId).SingleOrDefault();
         }
 
-        internal bool ContainsUserId(string aadId)
+        public bool ContainsUserId(string aadId)
         {
             return _userIdConversationCache.ContainsKey(aadId);
         }
+    }
+
+
+    public interface IBotConversationCache
+    {
+
+        public Task RemoveFromCache(string aadObjectId);
+
+
+        /// <summary>
+        /// App installed for user & now we have a conversation reference to cache for future chat threads.
+        /// </summary>
+        public Task AddConversationReferenceToCache(Activity activity);
+
+        public Task AddOrUpdateUserAndConversationId(ConversationReference conversationReference, string serviceUrl, string channelId);
+
+
+        public List<CachedUserAndConversationData> GetCachedUsers();
+
+        public CachedUserAndConversationData GetCachedUser(string aadObjectId);
+        public bool ContainsUserId(string aadId);
     }
 
     /// <summary>

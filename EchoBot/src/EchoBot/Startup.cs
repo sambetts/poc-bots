@@ -30,7 +30,14 @@ namespace EchoBot1
             var telemetry = new DebugTracer(config.AppInsightsInstrumentationKey, "Web");
             services.AddSingleton(telemetry);
 
-            services.AddSingleton(new BotConversationCache(config));
+            if (!string.IsNullOrEmpty(config.Storage))
+            {
+                services.AddSingleton<IBotConversationCache, AzureTableBotConversationCache>();
+            }
+            else
+            {
+                services.AddSingleton<IBotConversationCache, DummyBotConversationCache>();
+            }
 
 
             // Create the Bot Framework Authentication to be used with the Bot Adapter.

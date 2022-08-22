@@ -9,17 +9,18 @@ namespace EchoBot
         {
         }
 
-        [ConfigValue]
+
+        [ConfigValue(true)]
         public string MicrosoftAppId { get; set; } = string.Empty;
-        [ConfigValue]
+        [ConfigValue(true)]
         public string MicrosoftAppPassword { get; set; } = string.Empty;
-        [ConfigValue]
+        [ConfigValue(true)]
         public string MicrosoftAppTenantId { get; set; } = string.Empty;
 
         [ConfigValue(true)]
         public string AppInsightsInstrumentationKey { get; set; }
 
-        [ConfigValue]
+        [ConfigValue(true)]
         public string Storage { get; set; }
 
     }
