@@ -49,3 +49,18 @@ await ((BotAdapter)_adapter).ContinueConversationAsync(_config.MicrosoftAppId, p
 ```
 
 This isn’t as clean as the “new conversation/members-added” event, but it is something at least. In this demo we trigger it from a HTTP call, which could be called from a Flow/Logic app or something.
+
+# Setup
+Create a new Azure Bot service (Multi Tenant) in an Azure subscription that shares the same AAD as Teams. Also create a storage account for the conversation cache.
+In the app registration you'll need to copy out the client secret & ID - create a new secret if you have to. 
+
+Create an appsettings.json or secrets file with this configuration:
+
+```json
+{
+  "MicrosoftAppTenantId": "",
+  "MicrosoftAppId": "",
+  "MicrosoftAppPassword": "",
+  "Storage": "DefaultEndpointsProtocol=https;AccountName=xxxx;AccountKey=xxxxx;EndpointSuffix=core.windows.net"
+}
+```
