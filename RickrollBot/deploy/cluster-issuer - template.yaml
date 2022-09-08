@@ -14,4 +14,4 @@ spec:
           podTemplate:
             spec:
               nodeSelector:
-                "beta.kubernetes.io/os": linux
+                "kubernetes.io/os": linux

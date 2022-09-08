@@ -166,7 +166,7 @@ Status of the pods should eventually say "Running" with 0 restarts. It might tak
 It should show:
 
     NAME                                     TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)                                                                      AGE
-    nginx-ingress-ingress-nginx-controller   LoadBalancer   10.0.101.115   20.103.XXX.XXX   80:32215/TCP,443:30505/TCP,28550:32010/TCP,28551:32552/TCP,28552:31180/TCP   9h
+    ingress-nginx-controller   LoadBalancer   10.0.101.115   20.103.XXX.XXX   80:32215/TCP,443:30505/TCP,28550:32010/TCP,28551:32552/TCP,28552:31180/TCP   9h
 
 **Check the TLS service is rununing:**
 - kubectl get cert -n rickrollbot

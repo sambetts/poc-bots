@@ -1,16 +1,16 @@
 
 Param(
     $azureLocation = "westeurope",                      # Azure region 
-    $resourceGroupName = "AKSBotProd",                  # Where to create AKS and where the public IP is created
-    $publicIpName = "AksIpStandard",                    # Name of IP address
-    $botDomain = "",                                    # Bot DNS, e.g 
-    $acrName = "",                                      # Container registry name (not FQDN)
-    $AKSClusterName = "ClassroomCluster",               # AKS resource name to use/create
-    $applicationId = "",                                # Bot appID
+    $resourceGroupName = "RickrollBotCluster",                  # Where to create AKS and where the public IP is created
+    $publicIpName = "rickrollbotip",                    # Name of IP address
+    $botDomain = "rickrollbot.westeurope.cloudapp.azure.com",                                    # Bot DNS, e.g 
+    $acrName = "sfbdev",                                      # Container registry name (not FQDN)
+    $AKSClusterName = "RickrollBotCluster",               # AKS resource name to use/create
+    $applicationId = "248e433e-d809-4ebf-8a75-cab1c06e7b9c",                                # Bot appID
     $applicationSecret = "",                            # Bot secret
-    $botName = "",                                      # Bot service name, e.g 'ProdBot'
+    $botName = "sfbrandobot",                                      # Bot service name, e.g 'ProdBot'
     $containerTag = "latest",                           # Image tag to deploy to AKS
-    $applicationInsightsKey = ""                        # Application Insights instrumentation key
+    $applicationInsightsKey = "64eacac7-e8d7-44c6-9aca-ed4295c9bacc"                        # Application Insights instrumentation key
 )
 $aksNamespace = "rickrollbot"       # Also used for helm template name
 
@@ -105,7 +105,7 @@ helm repo add jetstack https://charts.jetstack.io
 helm repo update
 
 Write-Host "Installing cert-manager" -ForegroundColor Yellow
-helm install cert-manager jetstack/cert-manager --namespace cert-manager --version v1.3.1 --set nodeSelector."beta\.kubernetes\.io/os"=linux --set webhook.nodeSelector."beta\.kubernetes\.io/os"=linux --set cainjector.nodeSelector."beta\.kubernetes\.io/os"=linux --set installCRDs=true
+helm install cert-manager jetstack/cert-manager --namespace cert-manager --set nodeSelector."kubernetes\.io/os"=linux --set webhook.nodeSelector."kubernetes\.io/os"=linux --set cainjector.nodeSelector."kubernetes\.io/os"=linux --set installCRDs=true
 
 Write-Host "Waiting for cert-manager to be ready"
 kubectl wait pod -n cert-manager --for condition=ready --timeout=60s --all
@@ -120,23 +120,23 @@ kubectl apply -f .\cluster-issuer.yaml
 # Setup Ingress
 Write-Output "Creating ingress-nginx namespace"
 kubectl create namespace ingress-nginx
+kubectl label namespace ingress-nginx cert-manager.io/disable-validation=true
 
 Write-Output "Adding helm repositories"
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo add stable https://charts.helm.sh/stable
+helm repo add nginx-stable https://helm.nginx.com/stable
 helm repo update
 
 Write-Host "Installing ingress-nginx" -ForegroundColor Yellow
-helm install nginx-ingress ingress-nginx/ingress-nginx --version 3.36.0 --create-namespace --namespace ingress-nginx --set controller.replicaCount=3 --set controller.nodeSelector."beta\.kubernetes\.io/os"=linux --set controller.service.enabled=false --set controller.admissionWebhooks.enabled=false --set controller.config.log-format-stream="" --set controller.extraArgs.tcp-services-configmap=ingress-nginx/$aksNamespace-tcp-services --set controller.service.loadBalancerIP=$publicIpAddress
+helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace --set controller.replicaCount=3 --set controller.nodeSelector."kubernetes\.io/os"=linux --set controller.service.enabled=false --set controller.admissionWebhooks.enabled=false --set controller.config.log-format-stream="" --set controller.extraArgs.tcp-services-configmap=ingress-nginx/$aksNamespace-tcp-services --set controller.service.loadBalancerIP=$publicIpAddress --version 3.36.0
 
 # Setup AKS namespace for bot
 Write-Host "Creating $aksNamespace namespace and bot secret that holds BOT_ID, BOT_SECRET, BOT_NAME, App Insights key" -ForegroundColor Yellow
 kubectl create ns $aksNamespace
 kubectl create secret generic bot-application-secrets --namespace $aksNamespace --from-literal=applicationId="$applicationId" --from-literal=applicationSecret="$applicationSecret" --from-literal=botName="$botName" --from-literal=applicationInsightsKey="$applicationInsightsKey"
 
+
 # Setup Helm for recording bot
 Write-Host "Setting up helm for $aksNamespace for bot domain: $botDomain and Public IP: $publicIpAddress" -ForegroundColor Yellow
-
 helm install $aksNamespace ./$aksNamespace --namespace $aksNamespace --create-namespace --set host=$botDomain --set public.ip=$publicIpAddress --set image.domain="$acrName.azurecr.io" --set image.tag=$containerTag
 
 # Validate certificate, wait a minute or two
