@@ -10,7 +10,6 @@ metadata:
     helmAppVersion: {{ .Chart.AppVersion }}
     helmName: {{ .Chart.Name }}
   annotations:
-    kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: letsencrypt
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/server-snippet: |
@@ -18,6 +17,7 @@ metadata:
         proxy_pass https://{{ $fullName }}-$instance.{{ $fullName }}.{{ $namespace }}.svc.cluster.local:{{ .Values.internal.port }};
       }
 spec:
+  ingressClassName: nginx
   tls:
   - hosts:
     - {{ include "hostName" . }}

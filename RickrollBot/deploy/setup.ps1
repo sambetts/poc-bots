@@ -7,7 +7,7 @@ Param(
     $acrName = "sfbdev",                                      # Container registry name (not FQDN)
     $AKSClusterName = "RickrollBotCluster",               # AKS resource name to use/create
     $applicationId = "248e433e-d809-4ebf-8a75-cab1c06e7b9c",                                # Bot appID
-    $applicationSecret = "",                            # Bot secret
+    $applicationSecret = "cnL8Q~ZGPBghIFPidjOMTpzlfZ5Wd31XxLI.Ua6B",                            # Bot secret
     $botName = "sfbrandobot",                                      # Bot service name, e.g 'ProdBot'
     $containerTag = "latest",                           # Image tag to deploy to AKS
     $applicationInsightsKey = "64eacac7-e8d7-44c6-9aca-ed4295c9bacc"                        # Application Insights instrumentation key
@@ -60,6 +60,8 @@ else {
 }
 $publicIpAddress = $publicIpAddress.Replace('"', '')
 
+Write-Host "Azure public IP to use is: $publicIpAddress" -ForegroundColor Green
+
 # Check IP address against DNS
 $dnsResult = Resolve-DnsName -Name $botDomain -Type A
 if ($publicIpAddress -eq $dnsResult.IP4Address) {
@@ -71,7 +73,6 @@ else {
     exit
 }
 
-
 # Create the Azure Container Registry to hold the bot's docker image (if not already there)
 Write-Host "About to create ACR: $acrName. This will error if it's already been created, and that's ok..." -ForegroundColor Yellow
 az acr create --resource-group $resourceGroupName --name $acrName --sku Basic --admin-enabled true
@@ -81,15 +82,16 @@ az aks update -n $AKSClusterName -g $resourceGroupName --attach-acr $acrName
 
 # Starting with basic setup
 Write-Output "Getting AKS credentials for cluster: $AKSClusterName"
-az aks get-credentials --resource-group $resourceGroupName --name $AKSClusterName
+az aks get-credentials --resource-group $resourceGroupName --name $AKSClusterName --overwrite-existing 
 
 
-# Make sure everything is clean before doing things
-# on first run this will give errors, but when running it again it will restore things to initial state.
+# BEGIN K8 deployment
+# Make sure everything is clean before doing things on first run this will give errors, but when running it again it will restore things to initial state.
 Write-Host "Cleaning up resources from previous script execution. This will error if this is the 1st run, and this is fine..." -ForegroundColor Yellow
 # Uninstall via helm the bot
 helm uninstall $aksNamespace --namespace $aksNamespace
 # Delete certificates namespace
+kubectl delete ns $aksNamespace
 kubectl delete ns cert-manager
 # Delete ngix ingress
 kubectl delete ns ingress-nginx
@@ -105,17 +107,14 @@ helm repo add jetstack https://charts.jetstack.io
 helm repo update
 
 Write-Host "Installing cert-manager" -ForegroundColor Yellow
-helm install cert-manager jetstack/cert-manager --namespace cert-manager --set nodeSelector."kubernetes\.io/os"=linux --set webhook.nodeSelector."kubernetes\.io/os"=linux --set cainjector.nodeSelector."kubernetes\.io/os"=linux --set installCRDs=true
+helm install cert-manager jetstack/cert-manager --namespace cert-manager `
+    --set nodeSelector."kubernetes\.io/os"=linux `
+    --set webhook.nodeSelector."kubernetes\.io/os"=linux `
+    --set cainjector.nodeSelector."kubernetes\.io/os"=linux `
+    --set installCRDs=true
 
 Write-Host "Waiting for cert-manager to be ready"
 kubectl wait pod -n cert-manager --for condition=ready --timeout=60s --all
-
-Write-Host "Installing cluster SSL issuer" -ForegroundColor Yellow
-kubectl apply -f .\cluster-issuer.yaml
-
-# Write-Output "Sleeping for 30 secs before retrying
-Start-Sleep -Seconds 30
-kubectl apply -f .\cluster-issuer.yaml
 
 # Setup Ingress
 Write-Output "Creating ingress-nginx namespace"
@@ -127,17 +126,44 @@ helm repo add nginx-stable https://helm.nginx.com/stable
 helm repo update
 
 Write-Host "Installing ingress-nginx" -ForegroundColor Yellow
-helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace --set controller.replicaCount=3 --set controller.nodeSelector."kubernetes\.io/os"=linux --set controller.service.enabled=false --set controller.admissionWebhooks.enabled=false --set controller.config.log-format-stream="" --set controller.extraArgs.tcp-services-configmap=ingress-nginx/$aksNamespace-tcp-services --set controller.service.loadBalancerIP=$publicIpAddress --version 3.36.0
+helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace `
+    --set controller.replicaCount=3 `
+    --set controller.nodeSelector."kubernetes\.io/os"=linux `
+    --set controller.admissionWebhooks.enabled=false `
+    --set controller.service.enabled=false `
+    --set controller.service.loadBalancerIP=$publicIpAddress --version 4.2.5
+    
 
-# Setup AKS namespace for bot
+kubectl delete -A ValidatingWebhookConfiguration ingress-nginx-admission
+
+# Apply letsencrypt
+kubectl apply -f cluster-issuer.yaml
+
+# Setup AKS namespace & secrets for bot
 Write-Host "Creating $aksNamespace namespace and bot secret that holds BOT_ID, BOT_SECRET, BOT_NAME, App Insights key" -ForegroundColor Yellow
 kubectl create ns $aksNamespace
 kubectl create secret generic bot-application-secrets --namespace $aksNamespace --from-literal=applicationId="$applicationId" --from-literal=applicationSecret="$applicationSecret" --from-literal=botName="$botName" --from-literal=applicationInsightsKey="$applicationInsightsKey"
 
-
 # Setup Helm for recording bot
 Write-Host "Setting up helm for $aksNamespace for bot domain: $botDomain and Public IP: $publicIpAddress" -ForegroundColor Yellow
-helm install $aksNamespace ./$aksNamespace --namespace $aksNamespace --create-namespace --set host=$botDomain --set public.ip=$publicIpAddress --set image.domain="$acrName.azurecr.io" --set image.tag=$containerTag
+helm install $aksNamespace ./$aksNamespace --namespace $aksNamespace --create-namespace `
+    --set host=$botDomain `
+    --set public.ip=$publicIpAddress `
+    --set image.domain="$acrName.azurecr.io" `
+    --set image.tag=$containerTag
+
+
+# Check for external IP
+$externalIpValidation = kubectl --namespace ingress-nginx get services -o wide ingress-nginx-controller
+if ($externalIpValidation -notlike '*<pending>*') 
+{
+    Write-Host "External IP verified as bound to load-balancer" -ForegroundColor Green
+}
+else 
+{
+    Write-Host "Warning: we don't seem to have found an external IP. Check in a minute with 'kubectl --namespace ingress-nginx get services -o wide ingress-nginx-controller'" -ForegroundColor red
+}
+
 
 # Validate certificate, wait a minute or two
 Write-Host "Sleeping for 5 mins before running validation..." -ForegroundColor Yellow
