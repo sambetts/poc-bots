@@ -1,0 +1,118 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bot
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  minReadySeconds: 5 
+  template:
+    metadata:
+      labels:
+        app: bot
+    spec:
+      nodeSelector:
+        "kubernetes.io/os": windows
+      containers:
+      - name: bot
+        image: [ACR].azurecr.io/[BOTNAME]:latest
+        ports:
+        - name: a
+          containerPort: 9441
+        - name: b
+          containerPort: 8445
+        - name: c
+          containerPort: 9442
+        volumeMounts:
+        - mountPath: "C:/certs/"
+          name: certificate
+          readOnly: true
+        resources:
+          requests:
+            cpu: 250m
+          limits:
+            cpu: "4"
+            memory: "4G"
+        env:
+        - name: AzureSettings__BotName
+          valueFrom:
+            secretKeyRef:
+              name: bot-application-secrets
+              key: botName
+        - name: AzureSettings__AadAppId
+          valueFrom:
+            secretKeyRef:
+              name: bot-application-secrets
+              key: applicationId
+        - name: AzureSettings__AadAppSecret
+          valueFrom:
+            secretKeyRef:
+              name: bot-application-secrets
+              key: applicationSecret
+        - name: AzureSettings__ServiceDnsName
+          valueFrom:
+            secretKeyRef:
+              name: bot-application-secrets
+              key: serviceDnsName
+        - name: AzureSettings__InstancePublicPort
+          value: "8445"
+        - name: AzureSettings__InstanceInternalPort
+          value: "8445"
+        - name: AzureSettings__CallSignalingPort
+          value: "9441"
+        - name: AzureSettings__PodName
+          value: "bot-0"
+        - name: AzureSettings__PlaceCallEndpointUrl
+          value: https://graph.microsoft.com/v1.0
+        - name: AzureSettings__H2641280x720x30FpsFile
+          value: rickroll.1280x720x30.h264
+        - name: AzureSettings__H264320x180x15FpsFile
+          value: rickroll.320x180x15.h264
+        - name: AzureSettings__H264640x360x30xFpsFile
+          value: rickroll.640x360x30.h264
+        - name: AzureSettings__WavFile
+          value: RickAstley.wav
+        - name: AzureSettings__ApplicationInsightsKey
+          valueFrom:
+            secretKeyRef:
+              name: bot-application-secrets
+              key: applicationInsightsKey
+      volumes:
+      - name: certificate
+        secret:
+          secretName: tls-secret
+      
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: bot-service
+  annotations:
+    service.beta.kubernetes.io/azure-dns-label-name: sfb-test-aksbot
+spec:
+  # LoadBalancer type to allow external access to multiple ports
+  type: LoadBalancer
+  selector:
+    # Will deliver external traffic to the pod holding each of our containers
+    app: bot
+  ports:
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 9441
+    - name: whatevs
+      protocol: TCP
+      port: 8445
+      targetPort: 8445
+    - name: asdfasdfasdf
+      protocol: TCP
+      port: 9442
+      targetPort: 9442
+      
