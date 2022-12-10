@@ -70,7 +70,7 @@ For developer machines you'll want to run the bot directly from Visual Studio in
     - $ngrokAuthToken
     - $streamingAddressFull
 
-3. Run ngrok to open tunnels like so: "ngrok start --all -config .\ngrok-bot-tunnels.yaml"
+3. Run ngrok to open tunnels like so: "ngrok start --all --config .\ngrok-bot-tunnels.yaml"
 
 The ngrok output should look something like this:
 
