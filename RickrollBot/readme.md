@@ -68,7 +68,7 @@ For developer machines you'll want to run the bot directly from Visual Studio in
 
 2. Copy 'ngrok-bot-tunnels - template.yaml' to 'ngrok-bot-tunnels.yaml'. Update:
     - $ngrokAuthToken
-    - $streamingAddressFull
+    - $streamingAddressFull (TCP address with port)
 
 3. Run ngrok to open tunnels like so: "ngrok start --all --config .\ngrok-bot-tunnels.yaml"
 
@@ -87,7 +87,7 @@ For an AKS deployment the following tasks are automated in the cluster, but for 
 1. Generate an SSL certificate for your developer ngrok addresses as per [this guide](https://github.com/microsoftgraph/microsoft-graph-comms-samples/blob/master/Samples/V1.0Samples/AksSamples/teams-recording-bot/docs/setup/certificate.md#%23generate-ssl-certificate).
     - In short, you need to use [certbot](https://certbot.eff.org/instructions?ws=other&os=windows) to generate SSL certificates via LetsEncrypt (an org that give free SSL cerificates out. Perfect for us).
     - Let's prove we "own" the ngrok domain. Open port 80 of your bot domain with a specific ngrok command (don't use your normal ngrok config file launch):
-        - ngrok http 80 -subdomain $botDomain
+        - ngrok http 80 --subdomain $botDomain --scheme=http 
         - Example: 'ngrok http 80 -subdomain rickrollbot' (example domain is: rickrollbot.ngrok.io)
     - Now run certbot to validate you own the domain &amp; download the certificates, via the command-line wizard.
         - certbot certonly --standalone
