@@ -1,5 +1,6 @@
 ﻿using CommonUtils;
 using EchoBot;
+using EchoBot.ConversationCache;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Bot.Builder;
@@ -27,18 +28,14 @@ namespace EchoBot1
 
             var config = new Config(this.Configuration);
             services.AddSingleton(config);
-            var telemetry = new DebugTracer(config.AppInsightsInstrumentationKey, "Web");
-            services.AddSingleton(telemetry);
-
             if (!string.IsNullOrEmpty(config.Storage))
             {
                 services.AddSingleton<IBotConversationCache, AzureTableBotConversationCache>();
             }
             else
             {
-                services.AddSingleton<IBotConversationCache, DummyBotConversationCache>();
+                services.AddSingleton<IBotConversationCache, InMemoryBotConversationCache>();
             }
-
 
             // Create the Bot Framework Authentication to be used with the Bot Adapter.
             services.AddSingleton<BotFrameworkAuthentication, ConfigurationBotFrameworkAuthentication>();
@@ -47,7 +44,7 @@ namespace EchoBot1
             services.AddSingleton<IBotFrameworkHttpAdapter, AdapterWithErrorHandler>();
 
             // Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
-            services.AddTransient<IBot, Bots.EchoBot>();
+            services.AddTransient<IBot, EchoBot.Bots.EchoBot>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
