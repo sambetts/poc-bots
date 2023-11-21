@@ -22,3 +22,10 @@
 /EchoBot/src/EchoBot/appsettings.Development.json
 /EchoBot/Teams App/manifest.json
 /EchoBot/src/CommonUtils/bin/Debug/net8.0
+/BastardBot/.vs
+/BastardBot/BastardBot.Bot/obj/Debug/netcoreapp3.1
+/BastardBot/BastardBot.Bot/obj
+/BastardBot/BastardBot.Database/obj
+/BastardBot/BastardBot.ScheduledTasks/obj
+/BastardBot/BastardBot.Tests/obj
+/BastardBot/BastardBot.Web/obj
