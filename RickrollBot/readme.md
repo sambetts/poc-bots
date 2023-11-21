@@ -68,7 +68,7 @@ For developer machines you'll want to run the bot directly from Visual Studio in
 
 2. Copy 'ngrok-bot-tunnels - template.yaml' to 'ngrok-bot-tunnels.yaml'. Update:
     - $ngrokAuthToken
-    - $streamingAddressFull
+    - $streamingAddressFull (TCP address with port)
 
 3. Run ngrok to open tunnels like so: "ngrok start --all --config .\ngrok-bot-tunnels.yaml"
 
