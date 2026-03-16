@@ -1,4 +1,5 @@
 
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Graph.Communications.Common.Telemetry;
@@ -9,10 +10,8 @@ using RickrollBot.Services.ServiceSetup;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web.Http;
 
 namespace RickrollBot.Services.Http.Controllers
 {
@@ -20,7 +19,9 @@ namespace RickrollBot.Services.Http.Controllers
     /// DemoController serves as the gateway to explore the bot.
     /// From here you can get a list of calls, and functions for each call.
     /// </summary>
-    public class DemoController : ApiController
+    [ApiController]
+    [Route("")]
+    public class DemoController : ControllerBase
     {
         /// <summary>
         /// The logger
@@ -51,15 +52,14 @@ namespace RickrollBot.Services.Http.Controllers
         /// The GET calls.
         /// </summary>
         /// <returns>The <see cref="Task" />.</returns>
-        [HttpGet]
-        [Route(HttpRouteConstants.Calls + "/")]
-        public HttpResponseMessage OnGetCalls()
+        [HttpGet(HttpRouteConstants.Calls + "/")]
+        public IActionResult OnGetCalls()
         {
             _logger.Info($"{nameof(OnGetCalls)} - Getting calls");
 
             if (_botService.CallHandlers.IsEmpty)
             {
-                return this.Request.CreateResponse(HttpStatusCode.NoContent);
+                return NoContent();
             }
 
             var calls = new List<Dictionary<string, string>>();
@@ -80,32 +80,27 @@ namespace RickrollBot.Services.Http.Controllers
 
             var serializer = new CommsSerializer(pretty: true);
             var json = serializer.SerializeObject(calls);
-            var response = this.Request.CreateResponse(HttpStatusCode.OK);
-            response.Content = new StringContent(json, Encoding.UTF8, "application/json");
-            return response;
+            return Content(json, "application/json", Encoding.UTF8);
         }
 
         /// <summary>
         /// End the call.
         /// </summary>
         /// <param name="callLegId">Id of the call to end.</param>
-        /// <returns>The <see cref="HttpResponseMessage" />.</returns>
-        [HttpDelete]
-        [Route(HttpRouteConstants.CallRoute)]
-        public async Task<HttpResponseMessage> OnEndCallAsync(string callLegId)
+        /// <returns>The <see cref="IActionResult" />.</returns>
+        [HttpDelete(HttpRouteConstants.CallRoute)]
+        public async Task<IActionResult> OnEndCallAsync(string callLegId)
         {
             _logger.Info($"{nameof(OnEndCallAsync)} Ending call {callLegId}");
-            
+
             try
             {
                 await _botService.EndCallByCallLegIdAsync(callLegId).ConfigureAwait(false);
-                return this.Request.CreateResponse(HttpStatusCode.OK);
+                return Ok();
             }
             catch (Exception e)
             {
-                var response = this.Request.CreateResponse(HttpStatusCode.InternalServerError);
-                response.Content = new StringContent(e.ToString());
-                return response;
+                return StatusCode(500, e.ToString());
             }
         }
     }

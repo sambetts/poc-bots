@@ -1,11 +1,13 @@
 
 using Microsoft.ApplicationInsights;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Graph.Communications.Common.Telemetry;
-using Microsoft.Owin.Hosting;
 using Microsoft.Skype.Internal.Media.H264;
 using RickrollBot.Services.Bot;
 using RickrollBot.Services.Contract;
@@ -41,7 +43,7 @@ namespace RickrollBot.Services.ServiceSetup
         /// <summary>
         /// The call HTTP server
         /// </summary>
-        private IDisposable _callHttpServer;
+        private WebApplication _callHttpServer;
 
         /// <summary>
         /// The settings
@@ -132,31 +134,41 @@ namespace RickrollBot.Services.ServiceSetup
             {
                 _botService.Initialize();
 
-                var callStartOptions = new StartOptions();
-
                 var settings = (AzureSettings)_settings;
 
                 var rootPath = Path.Combine(Environment.CurrentDirectory, "wwwroot");
                 settings.BaseContentDir = rootPath;
 
+                // Create ASP.NET Core web application
+                var builder = WebApplication.CreateBuilder();
 
+                // Add services to the container
+                builder.Services.AddControllers();
+                builder.Services.AddCors();
 
+                // Copy services from the existing service collection
+                foreach (var service in ServiceCollection)
+                {
+                    builder.Services.Add(service);
+                }
 
+                // Configure URLs
                 foreach (var url in settings.CallControlListeningUrls)
                 {
-                    callStartOptions.Urls.Add(url);
+                    builder.WebHost.UseUrls(url);
                     _graphLogger.Info($"Listening on: {url}");
                 }
 
-                _callHttpServer = WebApp.Start(
-                    callStartOptions,
-                    (appBuilder) =>
-                    {
-                        var startup = new HttpConfigurationInitializer();
-                        startup.ConfigureSettings(appBuilder, _graphLogger, settings);
-                    });
+                _callHttpServer = builder.Build();
+
+                // Configure the HTTP request pipeline
+                var startup = new HttpConfigurationInitializer();
+                startup.ConfigureSettings(_callHttpServer, _graphLogger, settings);
 
                 _graphLogger.Info($"Root HTTP dir is {settings.BaseContentDir}");
+
+                // Start the server asynchronously
+                _ = _callHttpServer.RunAsync();
             }
             catch (Exception ex)
             {

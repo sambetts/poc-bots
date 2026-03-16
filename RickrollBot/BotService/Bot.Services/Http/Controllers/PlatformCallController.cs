@@ -1,4 +1,5 @@
 
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Communications.Client;
@@ -16,7 +17,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Web.Http;
 
 namespace RickrollBot.Services.Http.Controllers
 {
@@ -26,8 +26,9 @@ namespace RickrollBot.Services.Http.Controllers
     /// <summary>
     /// Entry point for handling call-related web hook requests from Skype Platform.
     /// </summary>
-    [RoutePrefix(HttpRouteConstants.CallSignalingRoutePrefix)]
-    public class PlatformCallController : ApiController
+    [ApiController]
+    [Route(HttpRouteConstants.CallSignalingRoutePrefix)]
+    public class PlatformCallController : ControllerBase
     {
         /// <summary>
         /// The bot service
@@ -52,16 +53,19 @@ namespace RickrollBot.Services.Http.Controllers
         /// Handle a callback for an incoming call.
         /// </summary>
         /// <returns>The <see cref="HttpResponseMessage" />.</returns>
-        [HttpPost]
-        [Route(HttpRouteConstants.OnIncomingRequestRoute)]
+        [HttpPost(HttpRouteConstants.OnIncomingRequestRoute)]
         public async Task<HttpResponseMessage> OnIncomingRequestAsync()
         {
-            var log = $"Received HTTP {this.Request.Method}, {this.Request.RequestUri}";
+            // Note: Bot Framework Graph SDK expects HttpRequestMessage
+            // We need to create it from the ASP.NET Core HttpContext
+            var request = await HttpContext.Request.ToHttpRequestMessageAsync().ConfigureAwait(false);
+
+            var log = $"Received HTTP {request.Method}, {request.RequestUri}";
             _logger.Info(log);
 
             // Instead of passing incoming notification to SDK, let's process it ourselves
             // so we can handle any policy evaluations.
-            var response = await ProcessNotificationAsync(_botService.Client, this.Request).ConfigureAwait(false);
+            var response = await ProcessNotificationAsync(_botService.Client, request).ConfigureAwait(false);
 
             // Enforce the connection close to ensure that requests are evenly load balanced so
             // calls do no stick to one instance of the worker role.
@@ -73,15 +77,18 @@ namespace RickrollBot.Services.Http.Controllers
         /// Handle a callback for an existing call
         /// </summary>
         /// <returns>The <see cref="HttpResponseMessage" />.</returns>
-        [HttpPost]
-        [Route(HttpRouteConstants.OnNotificationRequestRoute)]
+        [HttpPost(HttpRouteConstants.OnNotificationRequestRoute)]
         public async Task<HttpResponseMessage> OnNotificationRequestAsync()
         {
-            var log = $"Received HTTP {this.Request.Method}, {this.Request.RequestUri}";
+            // Note: Bot Framework Graph SDK expects HttpRequestMessage
+            // We need to create it from the ASP.NET Core HttpContext
+            var request = await HttpContext.Request.ToHttpRequestMessageAsync().ConfigureAwait(false);
+
+            var log = $"Received HTTP {request.Method}, {request.RequestUri}";
             _logger.Info(log);
 
             // Pass the incoming notification to the sdk. The sdk takes care of what to do with it.
-            var response = await _botService.Client.ProcessNotificationAsync(this.Request).ConfigureAwait(false);
+            var response = await _botService.Client.ProcessNotificationAsync(request).ConfigureAwait(false);
 
             // Enforce the connection close to ensure that requests are evenly load balanced so
             // calls do no stick to one instance of the worker role.

@@ -1,6 +1,6 @@
 
 using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.ApplicationInsights.WorkerService;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -49,7 +49,9 @@ namespace RickrollBot.Services.ServiceSetup
             // App Insights logging. We're only interested in info msgs
             services.AddLogging(loggingBuilder => 
                 loggingBuilder.AddFilter<Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider>("", LogLevel.Information));
-            services.AddApplicationInsightsTelemetryWorkerService(new ApplicationInsightsServiceOptions
+
+            // Use ASP.NET Core Application Insights instead of WorkerService
+            services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions
             {
                 InstrumentationKey = config.ApplicationInsightsKey
             });

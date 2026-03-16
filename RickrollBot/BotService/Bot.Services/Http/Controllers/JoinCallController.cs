@@ -1,6 +1,8 @@
 ﻿
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Graph;
 using Microsoft.Graph.Communications.Common.Telemetry;
 using Microsoft.Graph.Communications.Core.Serialization;
@@ -10,18 +12,19 @@ using RickrollBot.Services.Contract;
 using RickrollBot.Services.ServiceSetup;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web.Http;
 
 namespace RickrollBot.Services.Http.Controllers
 {
     /// <summary>
     /// JoinCallController is a third-party controller (non-Bot Framework) that can be called in CVI scenario to trigger the bot to join a call.
     /// </summary>
-    public class JoinCallController : ApiController
+    [ApiController]
+    [Route("")]
+    public class JoinCallController : ControllerBase
     {
         /// <summary>
         /// The logger
@@ -67,10 +70,9 @@ namespace RickrollBot.Services.Http.Controllers
         /// The join call async.
         /// </summary>
         /// <param name="joinCallBody">The join call body.</param>
-        /// <returns>The <see cref="HttpResponseMessage" />.</returns>
-        [HttpPost]
-        [Route(HttpRouteConstants.JoinCall)]
-        public async Task<HttpResponseMessage> JoinCallAsync([FromBody] JoinCallBody joinCallBody)
+        /// <returns>The <see cref="IActionResult" />.</returns>
+        [HttpPost(HttpRouteConstants.JoinCall)]
+        public async Task<IActionResult> JoinCallAsync([FromBody] JoinCallBody joinCallBody)
         {
             try
             {
@@ -89,33 +91,29 @@ namespace RickrollBot.Services.Http.Controllers
 
                 var serializer = new CommsSerializer(pretty: true);
                 var json = serializer.SerializeObject(values);
-                var response = this.Request.CreateResponse(HttpStatusCode.OK);
-                response.Content = new StringContent(json, Encoding.UTF8, "application/json");
-                return response;
+                return Content(json, "application/json", Encoding.UTF8);
             }
             catch (ServiceException e)
             {
-                HttpResponseMessage response = (int)e.StatusCode >= 300
-                    ? this.Request.CreateResponse(e.StatusCode)
-                    : this.Request.CreateResponse(HttpStatusCode.InternalServerError);
+                var statusCode = (int)e.StatusCode >= 300 ? (int)e.StatusCode : 500;
 
                 if (e.ResponseHeaders != null)
                 {
                     foreach (var responseHeader in e.ResponseHeaders)
                     {
-                        response.Headers.TryAddWithoutValidation(responseHeader.Key, responseHeader.Value);
+                        if (!Response.Headers.ContainsKey(responseHeader.Key))
+                        {
+                            Response.Headers.Add(responseHeader.Key, new StringValues(responseHeader.Value.ToArray()));
+                        }
                     }
                 }
 
-                response.Content = new StringContent(e.ToString());
-                return response;
+                return StatusCode(statusCode, e.ToString());
             }
             catch (Exception e)
             {
-                _logger.Error(e, $"Received HTTP {this.Request.Method}, {this.Request.RequestUri}");
-                HttpResponseMessage response = this.Request.CreateResponse(HttpStatusCode.InternalServerError);
-                response.Content = new StringContent(e.Message);
-                return response;
+                _logger.Error(e, $"Received HTTP {Request.Method}, {Request.Path}");
+                return StatusCode(500, e.Message);
             }
         }
     }

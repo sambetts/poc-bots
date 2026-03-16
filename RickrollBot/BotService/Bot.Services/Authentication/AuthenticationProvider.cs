@@ -19,18 +19,20 @@
 using Microsoft.Graph.Communications.Client.Authentication;
 using Microsoft.Graph.Communications.Common;
 using Microsoft.Graph.Communications.Common.Telemetry;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using RickrollBot.Model.Constants;
 using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace RickrollBot.Services.Authentication
 {
@@ -54,6 +56,11 @@ namespace RickrollBot.Services.Authentication
         /// The application secret.
         /// </summary>
         private readonly string appSecret;
+
+        /// <summary>
+        /// The MSAL confidential client application.
+        /// </summary>
+        private readonly IConfidentialClientApplication msalClient;
 
         /// <summary>
         /// The open ID configuration refresh interval.
@@ -83,12 +90,19 @@ namespace RickrollBot.Services.Authentication
             this.appName = appName.NotNullOrWhitespace(nameof(appName));
             this.appId = appId.NotNullOrWhitespace(nameof(appId));
             this.appSecret = appSecret.NotNullOrWhitespace(nameof(appSecret));
+
+            // Initialize MSAL confidential client
+            this.msalClient = ConfidentialClientApplicationBuilder
+                .Create(this.appId)
+                .WithClientSecret(this.appSecret)
+                .WithAuthority(new Uri("https://login.microsoftonline.com/common"))
+                .Build();
         }
 
         /// <summary>
         /// Authenticates the specified request message.
         /// This method will be called any time there is an outbound request.
-        /// In this case we are using the Microsoft.IdentityModel.Clients.ActiveDirectory library
+        /// In this case we are using the Microsoft.Identity.Client library (MSAL)
         /// to stamp the outbound http request with the OAuth 2.0 token using an AAD application id
         /// and application secret.  Alternatively, this method can support certificate validation.
         /// </summary>
@@ -98,23 +112,16 @@ namespace RickrollBot.Services.Authentication
         public async Task AuthenticateOutboundRequestAsync(HttpRequestMessage request, string tenant)
         {
             const string schema = "Bearer";
-            const string replaceString = "{tenant}";
-            const string oauthV2TokenLink = "https://login.microsoftonline.com/{tenant}";
-            const string resource = "https://graph.microsoft.com";
 
-            // If no tenant was specified, we craft the token link using the common tenant.
-            // https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-v2-protocols#endpoints
-            tenant = string.IsNullOrWhiteSpace(tenant) ? "common" : tenant;
-            var tokenLink = oauthV2TokenLink.Replace(replaceString, tenant);
+            // Define scopes for Microsoft Graph
+            var scopes = new[] { "https://graph.microsoft.com/.default" };
 
-            this.GraphLogger.Info("AuthenticationProvider: Generating OAuth token.");
-            var context = new AuthenticationContext(tokenLink);
-            var creds = new ClientCredential(this.appId, this.appSecret);
+            this.GraphLogger.Info("AuthenticationProvider: Generating OAuth token using MSAL.");
 
             AuthenticationResult result;
             try
             {
-                result = await this.AcquireTokenWithRetryAsync(context, resource, creds, attempts: 3).ConfigureAwait(false);
+                result = await this.AcquireTokenWithRetryAsync(scopes, attempts: 3).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -168,7 +175,7 @@ namespace RickrollBot.Services.Authentication
             };
 
             // Configure the TokenValidationParameters.
-            // Aet the Issuer(s) and Audience(s) to validate and
+            // Set the Issuer(s) and Audience(s) to validate and
             // assign the SigningKeys which were downloaded from AuthDomain.
             TokenValidationParameters validationParameters = new TokenValidationParameters
             {
@@ -180,9 +187,15 @@ namespace RickrollBot.Services.Authentication
             ClaimsPrincipal claimsPrincipal;
             try
             {
-                // Now validate the token. If the token is not valid for any reason, an exception will be thrown by the method
-                JwtSecurityTokenHandler handler = new JwtSecurityTokenHandler();
-                claimsPrincipal = handler.ValidateToken(token, validationParameters, out _);
+                // Now validate the token using JsonWebTokenHandler for .NET 10
+                var tokenHandler = new JsonWebTokenHandler();
+                var validationResult = tokenHandler.ValidateToken(token, validationParameters);
+                if (!validationResult.IsValid)
+                {
+                    this.GraphLogger.Error(validationResult.Exception, $"Token validation failed for client: {this.appId}.");
+                    return new RequestValidationResult() { IsValid = false };
+                }
+                claimsPrincipal = new ClaimsPrincipal(validationResult.ClaimsIdentity);
             }
 
             // Token expired... should somehow return 401 (Unauthorized)
@@ -207,19 +220,17 @@ namespace RickrollBot.Services.Authentication
                 return new RequestValidationResult { IsValid = false };
             }
 
-            request.Properties.Add(HttpConstants.HeaderNames.Tenant, tenantClaim.Value);
+            request.Options.Set(new HttpRequestOptionsKey<string>(HttpConstants.HeaderNames.Tenant), tenantClaim.Value);
             return new RequestValidationResult { IsValid = true, TenantId = tenantClaim.Value };
         }
 
         /// <summary>
-        /// Acquires the token and retries if failure occurs.
+        /// Acquires the token and retries if failure occurs using MSAL.
         /// </summary>
-        /// <param name="context">The application context.</param>
-        /// <param name="resource">The resource.</param>
-        /// <param name="creds">The application credentials.</param>
+        /// <param name="scopes">The scopes for the token.</param>
         /// <param name="attempts">The attempts.</param>
         /// <returns>The <see cref="AuthenticationResult" />.</returns>
-        private async Task<AuthenticationResult> AcquireTokenWithRetryAsync(AuthenticationContext context, string resource, ClientCredential creds, int attempts)
+        private async Task<AuthenticationResult> AcquireTokenWithRetryAsync(string[] scopes, int attempts)
         {
             while (true)
             {
@@ -227,7 +238,7 @@ namespace RickrollBot.Services.Authentication
 
                 try
                 {
-                    return await context.AcquireTokenAsync(resource, creds).ConfigureAwait(false);
+                    return await this.msalClient.AcquireTokenForClient(scopes).ExecuteAsync().ConfigureAwait(false);
                 }
                 catch (Exception)
                 {

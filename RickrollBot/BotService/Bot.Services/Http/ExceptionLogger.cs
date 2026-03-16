@@ -16,14 +16,15 @@
 using Microsoft.Graph.Communications.Common.Telemetry;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web.Http.ExceptionHandling;
 
 namespace RickrollBot.Services.Http
 {
     /// <summary>
     /// The exception logger.
+    /// NOTE: ASP.NET Core exception handling is done via middleware, not IExceptionLogger
+    /// This class is kept for reference but no longer used
     /// </summary>
-    public class ExceptionLogger : IExceptionLogger
+    public class ExceptionLogger
     {
         /// <summary>
         /// The logger
@@ -39,10 +40,12 @@ namespace RickrollBot.Services.Http
             this.logger = logger;
         }
 
-        /// <inheritdoc />
-        public Task LogAsync(ExceptionLoggerContext context, CancellationToken cancellationToken)
+        /// <summary>
+        /// Logs exceptions
+        /// </summary>
+        public Task LogAsync(System.Exception exception, CancellationToken cancellationToken)
         {
-            this.logger.Error(context.Exception, "Exception processing HTTP request.");
+            this.logger.Error(exception, "Exception processing HTTP request.");
             return Task.CompletedTask;
         }
     }

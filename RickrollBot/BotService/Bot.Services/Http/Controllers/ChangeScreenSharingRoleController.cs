@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.Graph;
 using Microsoft.Graph.Communications.Common.Telemetry;
 using RickrollBot.Model.Constants;
@@ -7,16 +8,16 @@ using RickrollBot.Services.Contract;
 using RickrollBot.Services.ServiceSetup;
 using System;
 using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
-using System.Web.Http;
 
 namespace Bot.Services.Http.Controllers
 {
     /// <summary>
     /// ChangeScreenSharingRoleController is a third-party controller (non-Bot Framework) that changes the bot's screen sharing role.
     /// </summary>
-    public class ChangeScreenSharingRoleController : ApiController
+    [ApiController]
+    [Route("")]
+    public class ChangeScreenSharingRoleController : ControllerBase
     {
         /// <summary>
         /// The logger
@@ -60,24 +61,23 @@ namespace Bot.Services.Http.Controllers
         /// The role to change to.
         /// </param>
         /// <returns>
-        /// The <see cref="HttpResponseMessage"/>.
+        /// The <see cref="IActionResult"/>.
         /// </returns>
-        [HttpPost]
-        [Route(HttpRouteConstants.CallRoute + "/" + HttpRouteConstants.OnChangeRoleRoute)]
-        public async Task<HttpResponseMessage> ChangeScreenSharingRoleAsync(string callLegId, [FromBody] ChangeRoleBody changeRoleBody)
+        [HttpPost(HttpRouteConstants.CallRoute + "/" + HttpRouteConstants.OnChangeRoleRoute)]
+        public async Task<IActionResult> ChangeScreenSharingRoleAsync(string callLegId, [FromBody] ChangeRoleBody changeRoleBody)
         {
             if (changeRoleBody == null)
             {
-                return this.Request.CreateResponse(HttpStatusCode.BadRequest);
+                return BadRequest();
             }
             try
             {
                 await _botService.ChangeSharingRoleAsync(callLegId, changeRoleBody.Role).ConfigureAwait(false);
-                return this.Request.CreateResponse(HttpStatusCode.OK);
+                return Ok();
             }
             catch (Exception e)
             {
-                return e.InspectExceptionAndReturnResponse();
+                return StatusCode(500, e.ToString());
             }
         }
 
