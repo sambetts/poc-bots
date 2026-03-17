@@ -50,6 +50,7 @@ namespace RickrollBot.Services.Util
         /// </summary>
         /// <param name="monoFilePath">The mono file path.</param>
         /// <returns>System.String.</returns>
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         public static string ConvertToStereo(string monoFilePath)
         {
             var outputFilePath = monoFilePath.Substring(0, monoFilePath.Length - 4) + monoFilePath.Substring(monoFilePath.Length-4).Replace(".wav", $"-{STEREO}.wav");

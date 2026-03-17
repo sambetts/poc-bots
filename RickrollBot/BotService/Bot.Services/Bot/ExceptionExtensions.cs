@@ -62,8 +62,8 @@ namespace RickrollBot.Services.Bot
             HttpResponseMessage responseToReturn;
             if (exception is ServiceException e)
             {
-                responseToReturn = (int)e.StatusCode >= 200
-                    ? new HttpResponseMessage(e.StatusCode)
+                responseToReturn = e.ResponseStatusCode >= 200
+                    ? new HttpResponseMessage((HttpStatusCode)e.ResponseStatusCode)
                     : new HttpResponseMessage(HttpStatusCode.InternalServerError);
                 if (e.ResponseHeaders != null)
                 {

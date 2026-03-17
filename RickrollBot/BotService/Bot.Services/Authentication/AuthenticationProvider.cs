@@ -189,7 +189,7 @@ namespace RickrollBot.Services.Authentication
             {
                 // Now validate the token using JsonWebTokenHandler for .NET 10
                 var tokenHandler = new JsonWebTokenHandler();
-                var validationResult = tokenHandler.ValidateToken(token, validationParameters);
+                var validationResult = await tokenHandler.ValidateTokenAsync(token, validationParameters).ConfigureAwait(false);
                 if (!validationResult.IsValid)
                 {
                     this.GraphLogger.Error(validationResult.Exception, $"Token validation failed for client: {this.appId}.");

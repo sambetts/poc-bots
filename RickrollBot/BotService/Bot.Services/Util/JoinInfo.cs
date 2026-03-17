@@ -1,7 +1,9 @@
 ﻿
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 using RickrollBot.Model.Models;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Runtime.Serialization.Json;
@@ -62,10 +64,16 @@ namespace RickrollBot.Services.Util
                 {
                     Organizer = new IdentitySet
                     {
-                        User = new Identity { Id = ctxt.Oid },
+                        User = new Identity
+                        {
+                            Id = ctxt.Oid,
+                            AdditionalData = new Dictionary<string, object>
+                            {
+                                { "tenantId", ctxt.Tid }
+                            }
+                        },
                     },
                 };
-                meetingInfo.Organizer.User.SetTenantId(ctxt.Tid);
 
                 return (chatInfo, meetingInfo);
             }

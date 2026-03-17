@@ -85,18 +85,12 @@ As this bot receives audio/video streams it must expose a TCP endpoint with SSL 
 For an AKS deployment the following tasks are automated in the cluster, but for dev we need to do this ourselves. 
 
 1. Generate an SSL certificate for your developer ngrok addresses as per [this guide](https://github.com/microsoftgraph/microsoft-graph-comms-samples/blob/master/Samples/V1.0Samples/AksSamples/teams-recording-bot/docs/setup/certificate.md#%23generate-ssl-certificate).
-    - In short, you need to use [certbot](https://certbot.eff.org/instructions?ws=other&os=windows) to generate SSL certificates via LetsEncrypt (an org that give free SSL cerificates out. Perfect for us).
+    - In short, you need to use [Certify The Web](https://certifytheweb.com/) to generate SSL certificates via LetsEncrypt (an org that give free SSL cerificates out. Perfect for us).
     - Let's prove we "own" the ngrok domain. Open port 80 of your bot domain with a specific ngrok command (don't use your normal ngrok config file launch):
         - ngrok http 80  --subdomain $botDomain --scheme http 
-        - Example: 'ngrok http 80 -subdomain rickrollbot --region us --scheme http ' (example domain is: rickrollbot.ngrok.io)
-    - Now run certbot to validate you own the domain &amp; download the certificates, via the command-line wizard.
-        - certbot certonly --standalone
-    - certbot will create a temporary webserver that LetsEncrypt will read to validate ownership of the domain $botDomain – your NGrok tunnel domain. Once validated, certificates for that domain are downloaded in PEM format - look for the certbot output for where.
-2. Once the PEM files have been created by certbot, you need to convert them to PFX format with [Open SSL](https://slproweb.com/products/Win32OpenSSL.html), in the directory the PEM files were created (C:\Certbot\archive\$botDomain usually):
-    - openssl pkcs12 -export -out ngrokbotdomain.pfx -inkey privkey1.pem -in cert1.pem -certfile chain1.pem
-3. You'll need to create a password for the PFX file.
-4. Now install the certificate into the machines certificate store via MMC or Windows explorer.
-5. Take note of the certificate thumbprint – $certThumbPrint
+        - Example: 'ngrok http 80 --subdomain rickrollbot --region us --scheme http' (example domain is: rickrollbot.ngrok.io)
+    - Now run Certify The Web to validate you own the domain with ngrok running. Follow the UI instructions to generate the certificate. You should see a success message in Certify The Web if validation works. If it doesn't work, check your ngrok config and make sure port 80 is open and forwarding to the right place
+2. The certificate will be installed to your local machine certificate store. Export the certificate with private key as a PFX file and take note of the thumbprint – $certThumbPrint.
 
 # Create Azure Resources
 Create: Azure Bot Service, and for production only: Application Insights. 
@@ -185,14 +179,16 @@ If you need to redeploy just the bot image or reconfigure it, you can do so with
     helm upgrade rickrollbot ./rickrollbot --namespace rickrollbot --set host=rickrollbot.teamsplatform.app --set public.ip=20.103.XXX.XXX --set image.domain="rickrollbot.azurecr.io" --set image.tag=1 --set scale.replicaCount=1
 
 If you've upgrade the bot solution; push a new tag to the container registry and apply the new tag with this command. K8 will do the rest!
+
+
 # Dev Only: Create netsh http and ssl bindings
 Because we're hosting this bot outside of IIS, we need to do some once-only configuration to create SSL bindings.
 In "RickrollBot\build" copy "certs-dev-template.bat" to "certs-dev.bat". 
 
-Edit the file, replacing values in the .bat from "RickrollBot\BotService\Bot.Console\\.env" file:
-- %AzureSettings__CallSignalingPort%
-- %AzureSettings__InstanceInternalPort%
-- %AzureSettings__CertificateThumbprint%
+Edit the file, *replacing* values in the .bat from "RickrollBot\BotService\Bot.Console\\.env" file:
+- %CallSignalingPort%
+- %InstanceInternalPort%
+- %CertHash%
 
 Example file:
 

@@ -13,6 +13,7 @@ namespace Sample.AudioVideoPlaybackBot.FrontEnd.Bot
     using System.Timers;
     using global::Bot.Services.Util;
     using Microsoft.Graph;
+    using Microsoft.Graph.Models;
     using Microsoft.Graph.Communications.Calls;
     using Microsoft.Graph.Communications.Calls.Media;
     using Microsoft.Graph.Communications.Common.Telemetry;

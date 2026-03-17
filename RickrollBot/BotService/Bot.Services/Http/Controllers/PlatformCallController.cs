@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 using Microsoft.Graph.Communications.Client;
 using Microsoft.Graph.Communications.Client.Authentication;
 using Microsoft.Graph.Communications.Common;
@@ -124,8 +125,8 @@ namespace RickrollBot.Services.Http.Controllers
             }
             catch (ServiceException ex)
             {
-                var statusCode = (int)ex.StatusCode >= 200
-                    ? ex.StatusCode
+                var statusCode = ex.ResponseStatusCode >= 200
+                    ? (HttpStatusCode)ex.ResponseStatusCode
                     : HttpStatusCode.BadRequest;
                 return client.LogAndCreateResponse(request, requestId, scenarioId, notifications, statusCode, stopwatch, ex);
             }
@@ -146,11 +147,7 @@ namespace RickrollBot.Services.Http.Controllers
             catch (Exception ex)
             {
                 var clientEx = new ClientException(
-                    new Error
-                    {
-                        Code = ErrorConstants.Codes.ClientCallbackError,
-                        Message = ErrorConstants.Messages.ClientErrorAuthenticatingRequest,
-                    },
+                    ErrorConstants.Messages.ClientErrorAuthenticatingRequest,
                     ex);
 
                 throw clientEx;
@@ -184,8 +181,8 @@ namespace RickrollBot.Services.Http.Controllers
             }
             catch (ServiceException ex)
             {
-                var statusCode = (int)ex.StatusCode >= 200
-                    ? ex.StatusCode
+                var statusCode = ex.ResponseStatusCode >= 200
+                    ? (HttpStatusCode)ex.ResponseStatusCode
                     : HttpStatusCode.InternalServerError;
                 return client.LogAndCreateResponse(request, requestId, scenarioId, notifications, statusCode, stopwatch, ex);
             }

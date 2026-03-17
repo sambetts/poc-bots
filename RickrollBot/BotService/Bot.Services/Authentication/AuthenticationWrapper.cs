@@ -15,7 +15,11 @@
 using Microsoft.Graph;
 using Microsoft.Graph.Communications.Client.Authentication;
 using Microsoft.Graph.Communications.Common;
+using Microsoft.Kiota.Abstractions;
+using Microsoft.Kiota.Abstractions.Authentication;
+using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RickrollBot.Services.Authentication
@@ -61,9 +65,19 @@ namespace RickrollBot.Services.Authentication
         }
 
         /// <inheritdoc />
-        public Task AuthenticateRequestAsync(HttpRequestMessage request)
+        public Task AuthenticateRequestAsync(RequestInformation request, Dictionary<string, object> additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
         {
-            return this.AuthenticateOutboundRequestAsync(request, this.tenant);
+            // Create an HttpRequestMessage and authenticate it, then transfer the auth header
+            var httpRequest = new HttpRequestMessage();
+            var authTask = this.AuthenticateOutboundRequestAsync(httpRequest, this.tenant);
+            authTask.Wait(cancellationToken);
+
+            if (httpRequest.Headers.Authorization != null)
+            {
+                request.Headers.Add("Authorization", $"{httpRequest.Headers.Authorization.Scheme} {httpRequest.Headers.Authorization.Parameter}");
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

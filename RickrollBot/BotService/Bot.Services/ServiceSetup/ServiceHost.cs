@@ -48,13 +48,16 @@ namespace RickrollBot.Services.ServiceSetup
 
             // App Insights logging. We're only interested in info msgs
             services.AddLogging(loggingBuilder => 
-                loggingBuilder.AddFilter<Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider>("", LogLevel.Information));
+                loggingBuilder.SetMinimumLevel(LogLevel.Information));
 
-            // Use ASP.NET Core Application Insights instead of WorkerService
-            services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions
+            // Only add Application Insights if a connection string is configured
+            if (!string.IsNullOrEmpty(config.ApplicationInsightsKey))
             {
-                InstrumentationKey = config.ApplicationInsightsKey
-            });
+                services.AddApplicationInsightsTelemetry(options =>
+                {
+                    options.ConnectionString = config.ApplicationInsightsKey;
+                });
+            }
 
             services.AddSingleton<IBotService, BotService>();
 

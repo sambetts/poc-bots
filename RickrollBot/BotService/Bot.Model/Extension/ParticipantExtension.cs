@@ -12,6 +12,7 @@
 // <summary></summary>
 // ***********************************************************************
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 using Microsoft.Graph.Communications.Calls;
 using Microsoft.Graph.Communications.Client;
 using Microsoft.Graph.Communications.Common.Telemetry;

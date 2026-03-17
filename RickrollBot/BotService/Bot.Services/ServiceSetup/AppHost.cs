@@ -93,33 +93,19 @@ namespace RickrollBot.Services.ServiceSetup
             ServiceProvider = ServiceCollection.BuildServiceProvider();
 
             // Add logging to Application Insights
-            _appInsights = ServiceProvider.GetRequiredService<TelemetryClient>();
+            _appInsights = ServiceProvider.GetService<TelemetryClient>();
 
             _graphLogger = Resolve<IGraphLogger>();
 
 
-            var logger = new AppInsightsGraphLogger(_appInsights);
-            _logSub = this._graphLogger.Subscribe(logger);
+            if (_appInsights != null)
+            {
+                var logger = new AppInsightsGraphLogger(_appInsights);
+                _logSub = this._graphLogger.Subscribe(logger);
+            }
 
             _settings = Resolve<IOptions<AzureSettings>>().Value;
             _settings.Initialize();
-
-
-            using (var fileReader = new H264FileReader(
-                                @"C:\Users\sambetts\Desktop\outfile.720.h264",
-                                (uint)1440,
-                                (uint)1080,
-                                30))
-            {
-                var listOfFrames = new List<H264Frame>();
-                var totalNumberOfFrames = fileReader.GetTotalNumberOfFrames();
-                for (int i = 0; i < totalNumberOfFrames; i++)
-                {
-                    H264Frame frame = new H264Frame();
-                    fileReader.GetNextFrame(frame);
-                    listOfFrames.Add(frame);
-                }
-            }
 
 
             _botService = Resolve<IBotService>();

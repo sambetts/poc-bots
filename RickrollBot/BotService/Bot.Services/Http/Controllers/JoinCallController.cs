@@ -95,16 +95,13 @@ namespace RickrollBot.Services.Http.Controllers
             }
             catch (ServiceException e)
             {
-                var statusCode = (int)e.StatusCode >= 300 ? (int)e.StatusCode : 500;
+                var statusCode = e.ResponseStatusCode >= 300 ? e.ResponseStatusCode : 500;
 
                 if (e.ResponseHeaders != null)
                 {
                     foreach (var responseHeader in e.ResponseHeaders)
                     {
-                        if (!Response.Headers.ContainsKey(responseHeader.Key))
-                        {
-                            Response.Headers.Add(responseHeader.Key, new StringValues(responseHeader.Value.ToArray()));
-                        }
+                        Response.Headers[responseHeader.Key] = new StringValues(responseHeader.Value.ToArray());
                     }
                 }
 

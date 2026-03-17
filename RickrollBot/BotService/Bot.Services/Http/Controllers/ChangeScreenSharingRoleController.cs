@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 using Microsoft.Graph.Communications.Common.Telemetry;
 using RickrollBot.Model.Constants;
 using RickrollBot.Services.Bot;

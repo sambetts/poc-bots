@@ -2,6 +2,7 @@
 using Bot.Services.Util;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 using Microsoft.Graph.Communications.Calls;
 using Microsoft.Graph.Communications.Calls.Media;
 using Microsoft.Graph.Communications.Client;
@@ -155,7 +156,11 @@ namespace RickrollBot.Services.Bot
 
             var (chatInfo, meetingInfo) = JoinInfo.ParseJoinURL(joinCallBody.JoinURL);
 
-            var tenantId = (meetingInfo as OrganizerMeetingInfo).Organizer.GetPrimaryIdentity().GetTenantId();
+            var organizer = (meetingInfo as OrganizerMeetingInfo)?.Organizer;
+            var tenantId = organizer?.User?.AdditionalData != null
+                && organizer.User.AdditionalData.TryGetValue("tenantId", out var tid)
+                ? tid?.ToString()
+                : null;
             var mediaSession = this.CreateLocalMediaSession();
 
             var joinParams = new JoinMeetingParameters(chatInfo, meetingInfo, mediaSession)

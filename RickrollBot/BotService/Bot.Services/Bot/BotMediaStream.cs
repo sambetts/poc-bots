@@ -52,7 +52,7 @@ namespace Sample.AudioVideoPlaybackBot.FrontEnd.Bot
         /// <exception cref="InvalidOperationException">Throws when no audio socket is passed in.</exception>
         public BotMediaStream(ILocalMediaSession mediaSession, IGraphLogger logger, AzureSettings settings)
         {
-            ArgumentVerifier.ThrowOnNullArgument(mediaSession, "mediaSession");
+            ArgumentNullException.ThrowIfNull(mediaSession, nameof(mediaSession));
 
             _settings = settings;
             this.mediaSession = mediaSession;
