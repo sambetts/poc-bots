@@ -76,8 +76,7 @@ The ngrok output should look something like this:
 
     - Region United States
     - tcp://1.tcp.ngrok.io:26065 -> localhost:8445
-    - http://rickrollbot.ngrok.io -> https://localhost:9441
-    - https://rickrollbot.ngrok.io -> https://localhost:9441
+    - https://rickrollbot.ngrok.io -> http://localhost:9441
 
 ## Dev Only: Generate SSL for Bot Media TCP Endpoint
 As this bot receives audio/video streams it must expose a TCP endpoint with SSL in addition to the normal HTTP endpoints. For dev we must request these certificates manually; in production there is an AKS service we deploy to do it automatically.
@@ -185,32 +184,11 @@ If you've upgrade the bot solution; push a new tag to the container registry and
 Because we're hosting this bot outside of IIS, we need to do some once-only configuration to create SSL bindings.
 In "RickrollBot\build" copy "certs-dev-template.bat" to "certs-dev.bat". 
 
-Edit the file, *replacing* values in the .bat from "RickrollBot\BotService\Bot.Console\\.env" file:
-- %CallSignalingPort%
-- %InstanceInternalPort%
-- %CertHash%
-
-Example file:
-
-    set /A CallSignalingPort2 = 9441 + 1
-
-    REM Deleting bindings
-    netsh http delete sslcert ipport=0.0.0.0:9441
-    netsh http delete sslcert ipport=0.0.0.0:8445
-    netsh http delete urlacl url=https://+:9441/
-    netsh http delete urlacl url=https://+:8445/
-    netsh http delete urlacl url=http://+:%CallSignalingPort2%/
-
-    REM Add URLACL bindings
-    netsh http add urlacl url=https://+:9441/ sddl=D:(A;;GX;;;S-1-1-0)
-    netsh http add urlacl url=https://+:8445/ sddl=D:(A;;GX;;;S-1-1-0)
-    netsh http add urlacl url=http://+:%CallSignalingPort2%/ sddl=D:(A;;GX;;;S-1-1-0)
-
-    REM ensure the app id matches the GUID in AssemblyInfo.cs
-    REM Ensure the certhash matches the certificate
-
-    netsh http add sslcert ipport=0.0.0.0:9441 certhash=ccb180918bc68b38f2660a2b2f3f943554d45052 appid={aeeb866d-e17b-406f-9385-32273d2f8691}
-    netsh http add sslcert ipport=0.0.0.0:8445 certhash=ccb180918bc68b38f2660a2b2f3f943554d45052 appid={aeeb866d-e17b-406f-9385-32273d2f8691}
+Edit the bat file, *replacing* the following placeholder values:
+- `<CALL_SIGNALING_PORT>` – from `AzureSettings__CallSignalingPort` in `.env`
+- `<INSTANCE_INTERNAL_PORT>` – from `AzureSettings__InstanceInternalPort` in `.env`
+- `<CERTIFICATE_THUMBPRINT>` – from `AzureSettings__CertificateThumbprint` in `.env`
+- `AppId` is pre-filled from `BotService\Bot.Console\Properties\AssemblyInfo.cs` – verify it matches your `[assembly: Guid("...")]` value
 
 Run "certs-dev.bat" with admin priveledges and check output for errors. The first time you run you'll see errors deleting old bindings. 
 
@@ -249,7 +227,7 @@ First networking. We assume there are no firewalls interfering with the service 
 - https://$botDomain (default SSL port 443) - used for Teams signals & our own bot control API.
 - $streamingAddressPort
 
-Test localhost from browser (https://localhost:9441/) - accept SSL warning. You should get a 404. 
+Test localhost from browser (https://localhost:9441/). You should get a 404. 
 
 Dev only: test ngrok URL - https://$botDomain (e.g https://rickrollbot.ngrok.io). You should also see a 404.
 

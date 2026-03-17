@@ -95,6 +95,7 @@ namespace RickrollBot.Services.Bot
                 name,
                 _settings.AadAppId,
                 _settings.AadAppSecret,
+                _settings.AadTenantId,
                 _logger);
 
             builder.SetAuthenticationProvider(authProvider);

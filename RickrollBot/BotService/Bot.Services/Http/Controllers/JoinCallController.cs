@@ -44,19 +44,7 @@ namespace RickrollBot.Services.Http.Controllers
         /// Initializes a new instance of the <see cref="JoinCallController" /> class.
 
         /// </summary>
-        public JoinCallController()
-        {
-            _logger = AppHost.AppHostInstance.Resolve<IGraphLogger>();
-            _botService = AppHost.AppHostInstance.Resolve<IBotService>();
-            _settings = AppHost.AppHostInstance.Resolve<IOptions<AzureSettings>>().Value;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="JoinCallController" /> class.
-
-        /// </summary>
         /// <param name="logger">The logger.</param>
-        /// <param name="eventPublisher">The event publisher.</param>
         /// <param name="botService">The bot service.</param>
         /// <param name="settings">The settings.</param>
         public JoinCallController(IGraphLogger logger, IBotService botService, IAzureSettings settings)

@@ -2,6 +2,7 @@
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.HttpSys;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,6 +17,7 @@ using RickrollBot.Services.Util;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace RickrollBot.Services.ServiceSetup
 {
@@ -118,8 +120,6 @@ namespace RickrollBot.Services.ServiceSetup
         {
             try
             {
-                _botService.Initialize();
-
                 var settings = (AzureSettings)_settings;
 
                 var rootPath = Path.Combine(Environment.CurrentDirectory, "wwwroot");
@@ -128,8 +128,11 @@ namespace RickrollBot.Services.ServiceSetup
                 // Create ASP.NET Core web application
                 var builder = WebApplication.CreateBuilder();
 
-                // Add services to the container
-                builder.Services.AddControllers();
+                // Add services to the container – include the Bot.Services assembly
+                // so controllers in that project are discovered (the entry assembly
+                // is Bot.Console, which contains no controllers).
+                builder.Services.AddControllers()
+                    .AddApplicationPart(typeof(Http.Controllers.JoinCallController).Assembly);
                 builder.Services.AddCors();
 
                 // Copy services from the existing service collection
@@ -138,14 +141,36 @@ namespace RickrollBot.Services.ServiceSetup
                     builder.Services.Add(service);
                 }
 
-                // Configure URLs
-                foreach (var url in settings.CallControlListeningUrls)
+                // Override IBotService with the already-initialized instance so
+                // controllers receive the same BotService that had Initialize()
+                // called on it (the copied descriptor would create a new,
+                // un-initialized instance).
+                builder.Services.AddSingleton(_botService);
+
+                // Use HTTP.sys (Windows only) - supports path-based URL prefixes and SSL via netsh
+                builder.WebHost.UseHttpSys(options =>
                 {
-                    builder.WebHost.UseUrls(url);
-                    _graphLogger.Info($"Listening on: {url}");
-                }
+                    foreach (var url in settings.CallControlListeningUrls)
+                    {
+                        options.UrlPrefixes.Add(url);
+                        _graphLogger.Info($"Listening on: {url}");
+                    }
+                });
 
                 _callHttpServer = builder.Build();
+
+                // Wire media platform logs into the ASP.NET Core logging
+                // pipeline so they appear in the console alongside all other
+                // application log messages.
+                var mediaLogger = _callHttpServer.Services
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("Microsoft.Skype.Bots.Media");
+                settings.MediaPlatformSettings.MediaPlatformLogger =
+                    new Util.MediaPlatformLogger(mediaLogger);
+
+                // Initialize the bot service (and media platform) now that
+                // the media platform logger is wired up.
+                _botService.Initialize();
 
                 // Configure the HTTP request pipeline
                 var startup = new HttpConfigurationInitializer();

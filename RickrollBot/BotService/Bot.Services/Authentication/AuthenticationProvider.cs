@@ -83,19 +83,26 @@ namespace RickrollBot.Services.Authentication
         /// <param name="appName">The application name.</param>
         /// <param name="appId">The application identifier.</param>
         /// <param name="appSecret">The application secret.</param>
+        /// <param name="tenantId">The AAD tenant identifier.</param>
         /// <param name="logger">The logger.</param>
-        public AuthenticationProvider(string appName, string appId, string appSecret, IGraphLogger logger)
+        public AuthenticationProvider(string appName, string appId, string appSecret, string tenantId, IGraphLogger logger)
             : base(logger.NotNull(nameof(logger)).CreateShim(nameof(AuthenticationProvider)))
         {
             this.appName = appName.NotNullOrWhitespace(nameof(appName));
             this.appId = appId.NotNullOrWhitespace(nameof(appId));
             this.appSecret = appSecret.NotNullOrWhitespace(nameof(appSecret));
 
+            // Client credentials flow requires a tenant-specific authority;
+            // the /common endpoint does not support app-only tokens.
+            var authority = string.IsNullOrWhiteSpace(tenantId)
+                ? "https://login.microsoftonline.com/common"
+                : $"https://login.microsoftonline.com/{tenantId}";
+
             // Initialize MSAL confidential client
             this.msalClient = ConfidentialClientApplicationBuilder
                 .Create(this.appId)
                 .WithClientSecret(this.appSecret)
-                .WithAuthority(new Uri("https://login.microsoftonline.com/common"))
+                .WithAuthority(new Uri(authority))
                 .Build();
         }
 
