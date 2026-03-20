@@ -9,6 +9,30 @@ It's designed to run either locally via ngrok (usually), or in Azure Kubernetes 
 
 It's not trivial to get running mainly thanks to the fact that these types of bots require TCP-level integration into the host OS. This means they won't work inside the usual context of IIS or any other webserver which would handle a lot of the hassle around SSL and TCP. But this guide should get you there regardless, if you have some patience. It's all in a good cause though: Rick Astley in your Teams meetings. 
 
+# Infrastructure
+For this to work, we need one domain for signalling and TCP streaming.
+
+Domain: **teamsplatforms.net**
+SSL (wildcard): *.teamsplatforms.net
+
+## Dev
+Local dev is a slightly complicated one because to reverse-proxy TCP and HTTP, we have two different domains by design. 
+We also need an SSL certificate for the TCP domain, which we can't do directly for the TCP domain NGrok gives us, so we need a CNAME to redirect it.
+
+NGrok TCP tunnel: tcp://1.tcp.ngrok.io:26065 -> localhost:8445
+
+DNS:
+* ngrok domain: rickrollbot.ngrok.io
+* CNAMEs: 
+  * ngrok.teamsplatforms.net -> rickrollbot.ngrok.io
+  * remotemediadev.teamsplatforms.net -> 1.tcp.ngrok.io
+
+Media URL for bot: remotemediadev.teamsplatforms.net
+Signalling: rickrollbot.ngrok.io
+
+Both use same SSL certificate. More details: https://microsoftgraph.github.io/microsoft-graph-comms-samples/docs/articles/Testing.html
+
+
 # Requirements
 To pull off epic Rickrolls you need:
 
@@ -17,7 +41,7 @@ To pull off epic Rickrolls you need:
     - ngrok with pro licence already configured (pro version needed to allow TCP + HTTP tunnelling).
         - OR: a public IP address on your VM. 
     - Free SSL certificate for ngrok/dev URL (see below on how to generate). Self-signed SSL will not work. 
-    - Visual Studio 2019/2022
+    - Visual Studio 2022/2026
 3. **Production deploy**:
     - Public bot domain (root-level) + DNS control for domain.
     - Docker for Windows to build bot container image.
