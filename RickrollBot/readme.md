@@ -12,10 +12,48 @@ It's not trivial to get running mainly thanks to the fact that these types of bo
 # Infrastructure
 For this to work, we need one domain for signalling and TCP streaming.
 
-Domain: **teamsplatforms.net**
+Example domain: **teamsplatforms.net**
 SSL (wildcard): *.teamsplatforms.net
 
-## Dev
+# Common Requirements
+To pull off epic Rickrolls you need:
+
+1. Azure subscription on same Azure tenant as Office 365/Teams
+2. Source code: [https://github.com/sambetts/poc-bots/tree/main/RickrollBot](https://github.com/sambetts/poc-bots/tree/main/RickrollBot)
+3. Bot permissions in Azure AD application:
+    - AccessMedia.All
+    - JoinGroupCall.All
+    - JoinGroupCallAsGuest.All
+
+# Common Azure Resources Setup
+These steps apply to both dev and production deployments.
+
+## Create Azure Bot Service
+1. Create new "Azure bot" in the Azure portal (can use az cmd if you wish too). 
+    - Use the free tier. 
+    - Type of app: "single tenant" or "multi tenant" (just not 'managed identity' - important).
+    - Create a new application registration for bot service.
+    - Once created, configure channel to Microsoft Teams, with calling enabled with endpoint: https://$botDomain/api/calling
+2. Take note of associated bot service app registration ID &amp; secret – the secret of which is stored in an associated key vault in the same resource-group.
+    - You'll have to add yourself to the access control of the key vault to get the secret. 
+
+## Grant Bot Teams Access
+The bot app registration needs the rights to join meetings next. In "API permissions" add the Graph API permissions granted specified in the requirements.
+**Important**: don't forget to grant admin consent to these permissions. 
+
+---
+
+# Development Setup
+
+This section covers everything needed to run the bot locally from Visual Studio using ngrok for tunnelling.
+
+## Dev Requirements
+- ngrok with pro licence already configured (pro version needed to allow TCP + HTTP tunnelling).
+    - OR: a public IP address on your VM. 
+- Free SSL certificate for ngrok/dev URL (see below on how to generate). Self-signed SSL will not work. 
+- Visual Studio 2022/2026
+
+## Dev Infrastructure
 Local dev is a slightly complicated one because to reverse-proxy TCP and HTTP, we have two different domains by design. 
 We also need an SSL certificate for the TCP domain, which we can't do directly for the TCP domain NGrok gives us, so we need a CNAME to redirect it.
 
@@ -32,57 +70,18 @@ Signalling: rickrollbot.ngrok.io
 
 Both use same SSL certificate. More details: https://microsoftgraph.github.io/microsoft-graph-comms-samples/docs/articles/Testing.html
 
+## Dev Configuration Reference
+- An ngrok domain, TCP tunnel address, and auth token for pro license - $ngrokAuthToken.
+- SSL certificate thumbprint - $certThumbPrint.
+- Bot service DNS name (your reserved NGrok domain) - $botDomain.
+- Azure AD: tenant ID, Bot App ID &amp; secret - $azureAdTenantId, $applicationId, $applicationSecret.
+- Azure Bot Service name – $botName.
 
-# Requirements
-To pull off epic Rickrolls you need:
+## Step 1: Prepare Local Files
+Copy 'BotService\Bot.Console\template.env' to just 'BotService\Bot.Console\\.env'.
+- If Windows explorer doesn't like the rename, you may need to run: copy .\template.env ".\\.env"
 
-1. Azure subscription on same Azure tenant as Office 365/Teams
-2. **Dev deploy only**:
-    - ngrok with pro licence already configured (pro version needed to allow TCP + HTTP tunnelling).
-        - OR: a public IP address on your VM. 
-    - Free SSL certificate for ngrok/dev URL (see below on how to generate). Self-signed SSL will not work. 
-    - Visual Studio 2022/2026
-3. **Production deploy**:
-    - Public bot domain (root-level) + DNS control for domain.
-    - Docker for Windows to build bot container image.
-6. Source code: [https://github.com/sambetts/poc-bots/tree/main/RickrollBot](https://github.com/sambetts/poc-bots/tree/main/RickrollBot)
-7. Bot permissions in Azure AD application:
-    - AccessMedia.All
-    - JoinGroupCall.All
-    - JoinGroupCallAsGuest.All
-
-# Required Configuration Information
-Most of these values we'll get after creating the resources below.
-
-1. **Dev only** :
-    - An ngrok domain, TCP tunnel address, and auth token for pro license - $ngrokAuthToken.
-    - SSL certificate thumbprint - $certThumbPrint.
-2. Bot service DNS name - $botDomain.
-    - **Production only:** this is your own domain.
-    - **Dev** : this is your reserved NGrok domain
-3. **Production only:**
-    - Azure container registry name/URL - $acrName (for 'contosoacr').
-    - Azure App Service to host Teams App; the DNS hostname - $teamsAppDNS.
-    - Application Insights instrumentation key - $appInsightsKey
-4. Azure AD: tenant ID, Bot App ID &amp; secret.
-    - $azureAdTenantId, $applicationId, $applicationSecret
-5. Azure Bot Service name – $botName
-
-# Setup Steps
-These steps differ depending on whether you plan on running the bot in AKS/K8 or directly on from Visual Studio for developing the solution.
-
-## Prepare Local Files
-Some configuration specific files aren't tracked in git, so need creating locally from the templates.
-
-- **Production only:**
-    - Copy 'deploy\cluster-issuer - template.yaml' to 'deploy\cluster-issuer.yaml'
-    - Edit 'cluster-issuer.yaml' and replace '$YOUR\_EMAIL\_HERE' with your own email.
-        - This is used for LetsEncrypt and needs to be a proper email address; not a free one (Gmail, Outlook, etc)
-- **Dev Only (ngrok)**
-    - Copy 'BotService\Bot.Console\template.env' to just 'BotService\Bot.Console\\.env'
-        - If Windows explorer doesn't like the rename, you may need to run: copy .\template.env ".\\.env"
-
-## Dev Only (ngrok): Setup tunneling configuration
+## Step 2: Setup ngrok Tunnelling
 For developer machines you'll want to run the bot directly from Visual Studio instead of from a container. For this to happen, we need inbound tunnelling to the right places.
 
 1. In [https://dashboard.ngrok.com/](https://dashboard.ngrok.com/), reserve a TCP address &amp; domain, all based in the US region.
@@ -102,10 +101,8 @@ The ngrok output should look something like this:
     - tcp://1.tcp.ngrok.io:26065 -> localhost:8445
     - https://rickrollbot.ngrok.io -> http://localhost:9441
 
-## Dev Only: Generate SSL for Bot Media TCP Endpoint
+## Step 3: Generate SSL for Bot Media TCP Endpoint
 As this bot receives audio/video streams it must expose a TCP endpoint with SSL in addition to the normal HTTP endpoints. For dev we must request these certificates manually; in production there is an AKS service we deploy to do it automatically.
-
-For an AKS deployment the following tasks are automated in the cluster, but for dev we need to do this ourselves. 
 
 1. Generate an SSL certificate for your developer ngrok addresses as per [this guide](https://github.com/microsoftgraph/microsoft-graph-comms-samples/blob/master/Samples/V1.0Samples/AksSamples/teams-recording-bot/docs/setup/certificate.md#%23generate-ssl-certificate).
     - In short, you need to use [Certify The Web](https://certifytheweb.com/) to generate SSL certificates via LetsEncrypt (an org that give free SSL cerificates out. Perfect for us).
@@ -115,23 +112,102 @@ For an AKS deployment the following tasks are automated in the cluster, but for 
     - Now run Certify The Web to validate you own the domain with ngrok running. Follow the UI instructions to generate the certificate. You should see a success message in Certify The Web if validation works. If it doesn't work, check your ngrok config and make sure port 80 is open and forwarding to the right place
 2. The certificate will be installed to your local machine certificate store. Export the certificate with private key as a PFX file and take note of the thumbprint – $certThumbPrint.
 
-# Create Azure Resources
-Create: Azure Bot Service, and for production only: Application Insights. 
+## Step 4: Create netsh HTTP and SSL Bindings
+Because we're hosting this bot outside of IIS, we need to do some once-only configuration to create SSL bindings.
+In "RickrollBot\build" copy "certs-dev-template.bat" to "certs-dev.bat". 
 
-1. Create new "Azure bot" in the Azure portal (can use az cmd if you wish too). 
-    - Use the free tier. 
-    - Type of app: "single tenant" or "multi tenant" (just not 'managed identity' - important).
-    - Create a new application registration for bot service.
-    - Once created, configure channel to Microsoft Teams, with calling enabled with endpoint: https://$botDomain/api/calling
-2. Take note of associated bot service app registration ID &amp; secret – the secret of which is stored in an associated key vault in the same resource-group.
-    - You'll have to add yourself to the access control of the key vault to get the secret. 
+Edit the bat file, *replacing* the following placeholder values:
+- `<CALL_SIGNALING_PORT>` – from `AzureSettings__CallSignalingPort` in `.env`
+- `<INSTANCE_INTERNAL_PORT>` – from `AzureSettings__InstanceInternalPort` in `.env`
+- `<CERTIFICATE_THUMBPRINT>` – from `AzureSettings__CertificateThumbprint` in `.env`
+- `AppId` is pre-filled from `BotService\Bot.Console\Properties\AssemblyInfo.cs` – verify it matches your `[assembly: Guid("...")]` value
 
-# Grant Bot Teams Access
-The bot app registration needs the rights to join meetings next. In "API permissions" add the Graph API permissions granted specified in the requirements.
-**Important**: don't forget to grant admin consent to these permissions. 
+Run "certs-dev.bat" with admin priveledges and check output for errors. The first time you run you'll see errors deleting old bindings. 
 
-# Production only: build & publish Docker image of bot
-For AKS deployments we first need an image of the bot service. You don't if you're just developing locally. 
+## Step 5: Configure and Run from Visual Studio
+
+1. Open "RickrollBot\BotService\Bot.Console\.env" and update the following values.
+    - AzureSettings\_\_BotName - $botName
+    - AzureSettings\_\_AadAppId - $applicationId
+    - AzureSettings\_\_AadTenantId - $azureAdTenantId
+    - AzureSettings\_\_AadAppSecret - $applicationSecret
+    - AzureSettings\_\_ServiceDnsName - $botDomain
+    - AzureSettings\_\_CertificateThumbprint - $certThumbPrint
+    - AzureSettings\_\_InstancePublicPort - $streamingAddressPort
+
+2. Run Visual Studio as administrator and start debugging 'Bot.Console'.
+    - Set Bot.Console as the start-up project.
+
+## Alternative Dev Approach: Direct Networking to VM
+If for some reason ngrok just isn't working out for you, you can just directly pipe traffic into your virtual machine. It just needs a public endpoint of some kind - a public IP address for example. I wouldn't recommend doing this unless ngrok just doesn't work out because you lose the logging facilities of ngrok, and it's less secure. Here's how anyway.
+
+- Open ports 80, 8445, 9441, 9442 on incoming firewall(s).
+- Create DNS for VM - $alternativeDevDNS.
+- Generate new SSL certificate for endpoint.
+    - Update ".env" file:
+        - New certificate thumbprint.
+        - Use port 8445 for InstancePublicPort and InstanceInternalPort.
+- Update & re-run the certs-dev.bat file to re-bind endpoints in Windows.
+
+Test no SSL error: open https://$alternativeDevDNS:9441/ (404 is expected). This address is where you'll send your bot POST commands to. 
+
+## Dev Testing
+Once the bot service is running we should test if it's working.
+
+First networking. We assume there are no firewalls interfering with the service endpoints:
+- https://$botDomain (default SSL port 443) - used for Teams signals & our own bot control API.
+- $streamingAddressPort
+
+Test localhost from browser (https://localhost:9441/). You should get a 404. 
+
+Test ngrok URL - https://$botDomain (e.g https://rickrollbot.ngrok.io). You should also see a 404.
+
+Next let's check if the bot can join a Teams call.
+    POST to https://rickrollbot.ngrok.io/joinCall
+```json
+
+    {
+        "JoinURL": $teamsJoinUrl,
+        "DisplayName": "Rick Astley"
+    }
+```
+
+Example body:
+```json
+    {
+        "JoinURL": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTMyM2M4YTYtY2ZiMi00NjkxLWI1YzQtZDA4MzJjM2E4NWFm%40thread.v2/0?context=%7b%22Tid%22%3a%22ffcdb539-892e-4eef-94f6-0d9851c479ba%22%2c%22Oid%22%3a%2248fe59a4-c951-43ca-9d16-972083aa6305%22%7d",
+        "DisplayName": "Rick Astley"
+    }
+```
+
+And with that, Rick should join your Teams call.
+
+---
+
+# Production Setup
+
+This section covers everything needed to deploy the bot to Azure Kubernetes Service (AKS) for scalable production use.
+
+## Production Requirements
+- Public bot domain (root-level) + DNS control for domain.
+- Docker for Windows to build bot container image.
+
+## Production Configuration Reference
+- Bot service DNS name (your own domain) - $botDomain.
+- Azure container registry name/URL - $acrName (for 'contosoacr').
+- Azure App Service to host Teams App; the DNS hostname - $teamsAppDNS.
+- Application Insights instrumentation key - $appInsightsKey.
+- Azure AD: tenant ID, Bot App ID &amp; secret - $azureAdTenantId, $applicationId, $applicationSecret.
+- Azure Bot Service name – $botName.
+
+## Step 1: Prepare Local Files
+- Copy 'deploy\cluster-issuer - template.yaml' to 'deploy\cluster-issuer.yaml'
+- Edit 'cluster-issuer.yaml' and replace '$YOUR\_EMAIL\_HERE' with your own email.
+    - This is used for LetsEncrypt and needs to be a proper email address; not a free one (Gmail, Outlook, etc)
+
+## Step 2: Build & Publish Docker Image
+For AKS deployments we first need an image of the bot service.
+
 1. Create an Azure container registry to push/pull bot image to. Basic tier is fine.
 2. With Docker in 'Windows container' mode, build a bot image from the root directory.
     - docker build -f ./build/Dockerfile . -t [TAG]
@@ -141,7 +217,7 @@ For AKS deployments we first need an image of the bot service. You don't if you'
 
 Get your IP address and DNS setup while the image is downloading and building. DNS needs to be working before we deploy anything in AKS. 
 
-# Production only: Create AKS resource via PowerShell
+## Step 3: Create AKS Resource via PowerShell
 For production we'll run the bot in AKS so it can scale up & down. This script creates a whole architecture in Kubernetes: a reverse nginx proxy + load-balancer + a scale-set role for the bot image + an SSL certificate manager to get & renew your public SSL certificate (like we do manually for the dev environment).
 
 Script pre-reqs:
@@ -166,7 +242,7 @@ Script pre-reqs:
 
 If the script fails for some reason, you can just run it again. It'll create & configure AKS, move the IP address to the AKS resource-group if needed, and create the archtecture mentioned above using helm templates. 
 
-## Verify K8 deployment
+## Step 4: Verify K8 Deployment
 Check the bot pods (i.e the containers running Rickroll bot) are creating and your image is being pulled without any error:
 - kubectl get pods -n rickrollbot
 
@@ -196,67 +272,20 @@ It should show:
 Something not right? Check events with:
 - kubectl get events --all-namespaces
 
-## Reconfigure Service
+## Reconfigure / Redeploy Service
 If you need to redeploy just the bot image or reconfigure it, you can do so without completely redeploying everything with this:
 
     helm upgrade rickrollbot ./rickrollbot --namespace rickrollbot --set host=rickrollbot.teamsplatform.app --set public.ip=20.103.XXX.XXX --set image.domain="rickrollbot.azurecr.io" --set image.tag=1 --set scale.replicaCount=1
 
 If you've upgrade the bot solution; push a new tag to the container registry and apply the new tag with this command. K8 will do the rest!
 
-
-# Dev Only: Create netsh http and ssl bindings
-Because we're hosting this bot outside of IIS, we need to do some once-only configuration to create SSL bindings.
-In "RickrollBot\build" copy "certs-dev-template.bat" to "certs-dev.bat". 
-
-Edit the bat file, *replacing* the following placeholder values:
-- `<CALL_SIGNALING_PORT>` – from `AzureSettings__CallSignalingPort` in `.env`
-- `<INSTANCE_INTERNAL_PORT>` – from `AzureSettings__InstanceInternalPort` in `.env`
-- `<CERTIFICATE_THUMBPRINT>` – from `AzureSettings__CertificateThumbprint` in `.env`
-- `AppId` is pre-filled from `BotService\Bot.Console\Properties\AssemblyInfo.cs` – verify it matches your `[assembly: Guid("...")]` value
-
-Run "certs-dev.bat" with admin priveledges and check output for errors. The first time you run you'll see errors deleting old bindings. 
-
-# Dev Only: Run Solution from Visual Studio
-If you're deploying to AKS, this step won't be necessary as configuration is stored within the AKS cluster itself. For dev environments though:
-
-1. Open "RickrollBot\BotService\Bot.Console\.env" and update the following values.
-    - AzureSettings\_\_BotName - $botName
-    - AzureSettings\_\_AadAppId - $applicationId
-    - AzureSettings\_\_AadTenantId - $azureAdTenantId
-    - AzureSettings\_\_AadAppSecret - $applicationSecret
-    - AzureSettings\_\_ServiceDnsName - $botDomain
-    - AzureSettings\_\_CertificateThumbprint - $certThumbPrint
-    - AzureSettings\_\_InstancePublicPort - $streamingAddressPort
-
-2. Run Visual Studio as administrator and start debugging 'Bot.Console'.
-    - Set Bot.Console as the start-up project.
-
-## Alternative Dev Approach to ngrok: Direct Networking to VM
-If for some reason ngrok just isn't working out for you, you can just directly pipe traffic into your virtual machine. It just needs a public endpoint of some kind - a public IP address for example. I wouldn't recommend doing this unless ngrok just doesn't work out because you lose the logging facilities of ngrok, and it's less secure. Here's how anyway.
-
-- Open ports 80, 8445, 9441, 9442 on incoming firewall(s).
-- Create DNS for VM - $alternativeDevDNS.
-- Generate new SSL certificate for endpoint.
-    - Update ".env" file:
-        - New certificate thumbprint.
-        - Use port 8445 for InstancePublicPort and InstanceInternalPort.
-- Update & re-run the certs-dev.bat file to re-bind endpoints in Windows.
-
-Test no SSL error: open https://$alternativeDevDNS:9441/ (404 is expected). This address is where you'll send your bot POST commands to. 
-
-# Testing and Running Solution
-Once the bot service is running we should test if it's working. 
-
-First networking. We assume there are no firewalls interfering with the service endpoints:
+## Production Testing
+Once deployed, verify the service endpoints are accessible (assume no firewalls interfering):
 - https://$botDomain (default SSL port 443) - used for Teams signals & our own bot control API.
 - $streamingAddressPort
 
-Test localhost from browser (https://localhost:9441/). You should get a 404. 
-
-Dev only: test ngrok URL - https://$botDomain (e.g https://rickrollbot.ngrok.io). You should also see a 404.
-
 Next let's check if the bot can join a Teams call.
-    POST to https://rickrollbot.ngrok.io/joinCall
+    POST to https://$botDomain/joinCall
 ```json
 
     {
@@ -284,9 +313,9 @@ You should see:
 
     TcpTestSucceeded : True
 
-Review logs Teams control messages with ngrok log: http://127.0.0.1:4040
+**Dev only:** Review Teams control message logs with the ngrok local web UI: http://127.0.0.1:4040
 
-Review Visual Studio output/App Insights Telemetry. Here's a working bot start-up log:
+Review Visual Studio output/App Insights Telemetry. Here's a working dev bot start-up log (using ngrok):
 
     Initializing MP with Service FQDN: rickrollbot.ngrok.io, Instance public port: 26065, Instance internal port: 8445
     UseMPAzureAppHostPerfCounterProvider is false. Discarding MP perf counters
